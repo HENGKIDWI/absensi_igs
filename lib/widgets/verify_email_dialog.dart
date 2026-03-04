@@ -27,17 +27,16 @@ class _VerifyEmailDialogState extends State<VerifyEmailDialog> {
     final uris = [
       Uri.parse('googlegmail://'),
       Uri.parse('intent:#Intent;package=com.google.android.gm;end'),
-      Uri(scheme: 'mailto'), // ini yang sebelumnya BERHASIL
+      Uri(scheme: 'mailto'),
     ];
 
     for (final uri in uris) {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
-        return; // stop jika berhasil
+        return;
       }
     }
 
-    // Jika semua gagal
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tidak ada aplikasi email yang tersedia')),
@@ -78,14 +77,12 @@ class _VerifyEmailDialogState extends State<VerifyEmailDialog> {
       ),
       actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       actions: [
-        // 📧 OPEN EMAIL
         OutlinedButton.icon(
           onPressed: _openEmailApp,
           icon: const Icon(Icons.email),
           label: const Text("Buka Email"),
         ),
 
-        // ✅ CHECK VERIFICATION
         ElevatedButton(
           onPressed: isChecking
               ? null
@@ -93,15 +90,14 @@ class _VerifyEmailDialogState extends State<VerifyEmailDialog> {
                   setState(() => isChecking = true);
 
                   try {
-                    // Coba login ulang untuk cek verifikasi
                     await context.read<AuthProvider>().login(
                       email: widget.email,
                       password: widget.password,
                     );
 
                     if (context.mounted) {
-                      Navigator.pop(context); // tutup dialog
-                      widget.onVerified?.call(); // navigasi ke home
+                      Navigator.pop(context);
+                      widget.onVerified?.call();
                     }
                   } catch (e) {
                     if (!mounted) return;

@@ -5,6 +5,7 @@ import 'package:igs_absensi/config/api.dart';
 import 'package:igs_absensi/model/user_model.dart';
 
 class ApiService {
+  // login
   Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.login);
 
@@ -34,6 +35,7 @@ class ApiService {
     return {'token': token};
   }
 
+  // get user
   Future<User> getUser(String token) async {
     final response = await http.get(
       Uri.parse(ApiConfig.baseUrl + ApiEndpoint.user),
@@ -47,6 +49,7 @@ class ApiService {
     return User.fromJson(jsonDecode(response.body));
   }
 
+  // register
   Future<void> register(
     String name,
     String email,
@@ -79,6 +82,7 @@ class ApiService {
     }
   }
 
+  // verifikasi email
   Future<bool> verifiEmail(String token) async {
     final response = await http.get(
       Uri.parse(ApiConfig.baseUrl + ApiEndpoint.verifyEmail),

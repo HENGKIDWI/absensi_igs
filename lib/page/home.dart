@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:igs_absensi/page/login.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -13,14 +14,7 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Home"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await context.read<AuthProvider>().logout();
-            },
-          ),
-        ],
+        actions: [logoutButton(context)],
       ),
       body: Center(
         child: user == null
@@ -48,6 +42,13 @@ class HomePage extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: () async {
                       await context.read<AuthProvider>().logout();
+                      if (context.mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginPage()),
+                          (route) => false,
+                        );
+                      }
                     },
                     icon: const Icon(Icons.logout),
                     label: const Text("Logout"),
@@ -55,6 +56,22 @@ class HomePage extends StatelessWidget {
                 ],
               ),
       ),
+    );
+  }
+
+  IconButton logoutButton(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.logout),
+      onPressed: () async {
+        await context.read<AuthProvider>().logout();
+        if (context.mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+            (route) => false,
+          );
+        }
+      },
     );
   }
 }

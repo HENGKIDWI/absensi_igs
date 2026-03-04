@@ -96,11 +96,20 @@ class _RegisterPageState extends State<RegisterPage> {
                                   confirmPassword:
                                       confirmPasswordController.text,
                                 );
+
+                                if (context.mounted) {
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const HomePage(),
+                                    ),
+                                    (route) => false,
+                                  );
+                                }
                               } catch (e) {
                                 if (e.toString().contains(
                                   'EMAIL_NOT_VERIFIED',
                                 )) {
-                                  // Tampilkan dialog verifikasi
                                   if (context.mounted) {
                                     showDialog(
                                       context: context,
@@ -109,9 +118,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                         email: emailController.text,
                                         password: passwordController.text,
                                         onVerified: () {
-                                          Navigator.pushReplacementNamed(
+                                          Navigator.pushAndRemoveUntil(
                                             context,
-                                            '/home',
+                                            MaterialPageRoute(
+                                              builder: (_) => const HomePage(),
+                                            ),
+                                            (route) => false,
                                           );
                                         },
                                       ),

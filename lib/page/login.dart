@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:igs_absensi/page/home.dart';
 import 'package:igs_absensi/page/lupa_password.dart';
 import 'package:igs_absensi/page/register.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
@@ -118,7 +119,11 @@ class _LoginPageState extends State<LoginPage> {
 
           // Berhasil → navigasi ke home
           if (context.mounted) {
-            Navigator.pushReplacementNamed(context, '/home');
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const HomePage()),
+              (route) => false,
+            );
           }
         } catch (e) {
           if (e.toString().contains('EMAIL_NOT_VERIFIED')) {
@@ -131,7 +136,11 @@ class _LoginPageState extends State<LoginPage> {
                   email: emailController.text,
                   password: passwordController.text,
                   onVerified: () {
-                    Navigator.pushReplacementNamed(context, '/home');
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HomePage()),
+                      (route) => false,
+                    );
                   },
                 ),
               );

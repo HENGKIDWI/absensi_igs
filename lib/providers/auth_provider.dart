@@ -8,10 +8,12 @@ class AuthProvider extends ChangeNotifier {
 
   bool isLoading = false;
   User? user;
+  bool isVerified = false;
 
   // login
   Future<void> login({required String email, required String password}) async {
     isLoading = true;
+    isVerified = false;
     notifyListeners();
 
     try {
@@ -20,15 +22,16 @@ class AuthProvider extends ChangeNotifier {
 
       if (token == null) throw Exception("Token tidak ditemukan");
 
-      final isVerified = await _apiService.verifiEmail(token);
+      final verified = await _apiService.verifiEmail(token);
 
-      if (!isVerified) {
+      if (!verified) {
         await AuthStorage.saveToken(token);
         throw Exception('EMAIL_NOT_VERIFIED');
       }
 
       await AuthStorage.saveToken(token);
       user = await _apiService.getUser(token);
+      isVerified = true;
     } catch (e) {
       debugPrint("LOGIN ERROR: $e");
       rethrow;
@@ -50,7 +53,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       await _apiService.register(name, email, password, confirmPassword);
-      // await login(email: email, password: password);
+      await login(email: email, password: password);
     } catch (e) {
       rethrow;
     } finally {
