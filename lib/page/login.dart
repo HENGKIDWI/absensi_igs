@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:igs_absensi/page/home.dart';
 import 'package:igs_absensi/page/lupa_password.dart';
 import 'package:igs_absensi/page/register.dart';
+import 'package:igs_absensi/providers/auth_provider.dart';
 import 'package:igs_absensi/widgets/auth_text_button.dart';
 import 'package:igs_absensi/widgets/custom_text_field.dart';
 import 'package:igs_absensi/widgets/primary_button.dart';
+import 'package:igs_absensi/widgets/verify_email_dialog.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -58,8 +60,14 @@ class _LoginPageState extends State<LoginPage> {
                       controller: passwordController,
                       obscureText: true,
                     ),
-                    lupaPassword(context),
-                    loginButton(context),
+                    forgotPasswordTextButton(context),
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, _) {
+                        return auth.isLoading
+                            ? const CircularProgressIndicator()
+                            : loginButton(context);
+                      },
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -94,16 +102,52 @@ class _LoginPageState extends State<LoginPage> {
   PrimaryButton loginButton(BuildContext context) {
     return PrimaryButton(
       text: 'Login',
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => Home()),
-        );
+      onPressed: () async {
+        if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Email dan password wajib diisi')),
+          );
+          return;
+        }
+
+        try {
+          await context.read<AuthProvider>().login(
+            email: emailController.text,
+            password: passwordController.text,
+          );
+
+          // Berhasil → navigasi ke home
+          if (context.mounted) {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        } catch (e) {
+          if (e.toString().contains('EMAIL_NOT_VERIFIED')) {
+            // Tampilkan dialog verifikasi
+            if (context.mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => VerifyEmailDialog(
+                  email: emailController.text,
+                  password: passwordController.text,
+                  onVerified: () {
+                    Navigator.pushReplacementNamed(context, '/home');
+                  },
+                ),
+              );
+            }
+          } else {
+            // Error lain (salah password, dll)
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(e.toString())));
+          }
+        }
       },
     );
   }
 
-  AuthTextButton lupaPassword(BuildContext context) {
+  AuthTextButton forgotPasswordTextButton(BuildContext context) {
     return AuthTextButton(
       text: "Lupa Password?",
       warnaText: Colors.redAccent,

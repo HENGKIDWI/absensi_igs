@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:igs_absensi/page/home.dart';
+import 'package:igs_absensi/widgets/verify_email_dialog.dart';
+import 'package:provider/provider.dart';
 import 'package:igs_absensi/page/login.dart';
+import 'package:igs_absensi/providers/auth_provider.dart';
 import 'package:igs_absensi/widgets/auth_text_button.dart';
 import 'package:igs_absensi/widgets/custom_text_field.dart';
 import 'package:igs_absensi/widgets/primary_button.dart';
@@ -36,23 +39,15 @@ class _RegisterPageState extends State<RegisterPage> {
             width: 320,
             child: Column(
               children: [
-                //  LOGO
-                Image.asset(
-                  'assets/images/logo.png',
-                  width: 200,
-                  height: 100,
-                  fit: BoxFit.contain,
-                ),
-
+                Image.asset('assets/images/logo.png', width: 200, height: 100),
                 const SizedBox(height: 40),
-                Text("ABSENSI DIGITAL"),
+                const Text("ABSENSI DIGITAL"),
                 const SizedBox(height: 45),
-                // FORM
+
                 CustomTextField(
                   label: "Nama Lengkap",
                   controller: nameController,
                 ),
-
                 const SizedBox(height: 16),
 
                 CustomTextField(
@@ -60,7 +55,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
                 ),
-
                 const SizedBox(height: 16),
 
                 CustomTextField(
@@ -68,7 +62,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: passwordController,
                   obscureText: true,
                 ),
-
                 const SizedBox(height: 16),
 
                 CustomTextField(
@@ -76,22 +69,71 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: confirmPasswordController,
                   obscureText: true,
                 ),
-
                 const SizedBox(height: 24),
 
-                PrimaryButton(
-                  text: "Daftar",
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Home()),
-                    );
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) {
+                    return auth.isLoading
+                        ? const CircularProgressIndicator()
+                        : PrimaryButton(
+                            text: "Daftar",
+                            onPressed: () async {
+                              if (passwordController.text !=
+                                  confirmPasswordController.text) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Password tidak sama"),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              try {
+                                await context.read<AuthProvider>().register(
+                                  name: nameController.text,
+                                  email: emailController.text,
+                                  password: passwordController.text,
+                                  confirmPassword:
+                                      confirmPasswordController.text,
+                                );
+                              } catch (e) {
+                                if (e.toString().contains(
+                                  'EMAIL_NOT_VERIFIED',
+                                )) {
+                                  // Tampilkan dialog verifikasi
+                                  if (context.mounted) {
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (_) => VerifyEmailDialog(
+                                        email: emailController.text,
+                                        password: passwordController.text,
+                                        onVerified: () {
+                                          Navigator.pushReplacementNamed(
+                                            context,
+                                            '/home',
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(e.toString())),
+                                  );
+                                }
+                              }
+                            },
+                          );
                   },
                 ),
+
+                const SizedBox(height: 16),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Sudah memiliki akun?"),
+                    const Text("Sudah memiliki akun?"),
                     registerTextButton(context),
                   ],
                 ),
@@ -110,9 +152,9 @@ AuthTextButton registerTextButton(BuildContext context) {
     warnaText: Colors.blueAccent,
     alignment: Alignment.center,
     onPressed: () {
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
+        MaterialPageRoute(builder: (_) => const LoginPage()),
       );
     },
   );
