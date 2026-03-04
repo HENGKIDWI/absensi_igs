@@ -130,6 +130,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     );
                                   }
                                 } else {
+                                  // ignore: use_build_context_synchronously
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(content: Text(e.toString())),
                                   );

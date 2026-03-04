@@ -148,6 +148,7 @@ class _LoginPageState extends State<LoginPage> {
           } else {
             // Error lain (salah password, dll)
             ScaffoldMessenger.of(
+              // ignore: use_build_context_synchronously
               context,
             ).showSnackBar(SnackBar(content: Text(e.toString())));
           }
