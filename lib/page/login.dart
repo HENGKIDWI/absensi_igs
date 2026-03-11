@@ -27,6 +27,54 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  Future<void> _handleLogin() async {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email dan password wajib diisi')),
+      );
+      return;
+    }
+
+    try {
+      await context.read<AuthProvider>().login(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      if (e.toString().contains('EMAIL_NOT_VERIFIED')) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EmailVerifyPage(email: emailController.text),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
+  void _handleNavigateToRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RegisterPage()),
+    );
+  }
+
+  void _handleNavigateToForgotPassword() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => LupaPassword()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,18 +83,15 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              //  LOGO
               Image.asset(
                 'assets/images/logo.png',
                 width: 200,
                 height: 100,
                 fit: BoxFit.contain,
               ),
-
               const SizedBox(height: 40),
-              Text("ABSENSI DIGITAL"),
+              const Text("ABSENSI DIGITAL"),
               const SizedBox(height: 45),
-              //  FORM
               SizedBox(
                 width: 320,
                 child: Column(
@@ -54,26 +99,41 @@ class _LoginPageState extends State<LoginPage> {
                     CustomTextField(
                       label: 'Email',
                       controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 16),
                     CustomTextField(
                       label: 'Password',
                       controller: passwordController,
                       obscureText: true,
+                      keyboardType: TextInputType.visiblePassword,
                     ),
-                    forgotPasswordTextButton(context),
+                    AuthTextButton(
+                      text: "Lupa Password?",
+                      warnaText: Colors.redAccent,
+                      alignment: Alignment.bottomRight,
+                      onPressed: _handleNavigateToForgotPassword,
+                    ),
                     Consumer<AuthProvider>(
                       builder: (context, auth, _) {
                         return auth.isLoading
                             ? const CircularProgressIndicator()
-                            : loginButton(context);
+                            : PrimaryButton(
+                                text: 'Login',
+                                onPressed: _handleLogin,
+                              );
                       },
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Belum memiliki akun?"),
-                        registerTextButton(context),
+                        const Text("Belum memiliki akun?"),
+                        AuthTextButton(
+                          text: 'Register',
+                          warnaText: Colors.blueAccent,
+                          alignment: Alignment.center,
+                          onPressed: _handleNavigateToRegister,
+                        ),
                       ],
                     ),
                   ],
@@ -83,79 +143,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
-    );
-  }
-
-  AuthTextButton registerTextButton(BuildContext context) {
-    return AuthTextButton(
-      text: 'Register',
-      warnaText: Colors.blueAccent,
-      alignment: Alignment.center,
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const RegisterPage()),
-        );
-      },
-    );
-  }
-
-  PrimaryButton loginButton(BuildContext context) {
-    return PrimaryButton(
-      text: 'Login',
-      onPressed: () async {
-        if (emailController.text.isEmpty || passwordController.text.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Email dan password wajib diisi')),
-          );
-          return;
-        }
-
-        try {
-          await context.read<AuthProvider>().login(
-            email: emailController.text,
-            password: passwordController.text,
-          );
-
-          // Berhasil → navigasi ke home
-          if (context.mounted) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const HomePage()),
-              (route) => false,
-            );
-          }
-        } catch (e) {
-          if (e.toString().contains('EMAIL_NOT_VERIFIED')) {
-            if (context.mounted) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EmailVerifyPage(email: emailController.text),
-                ),
-              );
-            }
-          } else {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(e.toString())));
-          }
-        }
-      },
-    );
-  }
-
-  AuthTextButton forgotPasswordTextButton(BuildContext context) {
-    return AuthTextButton(
-      text: "Lupa Password?",
-      warnaText: Colors.redAccent,
-      alignment: Alignment.bottomRight,
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => LupaPassword()),
-        );
-      },
     );
   }
 }

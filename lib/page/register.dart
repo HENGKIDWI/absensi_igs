@@ -29,6 +29,44 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
+  Future<void> _handleRegister(AuthProvider auth) async {
+    if (passwordController.text != confirmPasswordController.text) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Password tidak sama")));
+      return;
+    }
+
+    try {
+      await auth.register(
+        name: nameController.text,
+        email: emailController.text,
+        password: passwordController.text,
+        confirmPassword: confirmPasswordController.text,
+      );
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EmailVerifyPage(email: emailController.text),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  void _handleToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,6 +84,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 CustomTextField(
                   label: "Nama Lengkap",
                   controller: nameController,
+                  keyboardType: TextInputType.name,
                 ),
                 const SizedBox(height: 16),
 
@@ -60,6 +99,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   label: "Password",
                   controller: passwordController,
                   obscureText: true,
+                  keyboardType: TextInputType.visiblePassword,
                 ),
                 const SizedBox(height: 16),
 
@@ -67,6 +107,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   label: "Konfirmasi Password",
                   controller: confirmPasswordController,
                   obscureText: true,
+                  keyboardType: TextInputType.visiblePassword,
                 ),
                 const SizedBox(height: 24),
 
@@ -76,40 +117,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ? const CircularProgressIndicator()
                         : PrimaryButton(
                             text: "Daftar",
-                            onPressed: () async {
-                              if (passwordController.text !=
-                                  confirmPasswordController.text) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Password tidak sama"),
-                                  ),
-                                );
-                                return;
-                              }
-
-                              try {
-                                await context.read<AuthProvider>().register(
-                                  name: nameController.text,
-                                  email: emailController.text,
-                                  password: passwordController.text,
-                                  confirmPassword:
-                                      confirmPasswordController.text,
-                                );
-
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => EmailVerifyPage(
-                                      email: emailController.text,
-                                    ),
-                                  ),
-                                );
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(e.toString())),
-                                );
-                              }
-                            },
+                            onPressed: () => _handleRegister(auth),
                           );
                   },
                 ),
@@ -120,7 +128,12 @@ class _RegisterPageState extends State<RegisterPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Sudah memiliki akun?"),
-                    registerTextButton(context),
+                    AuthTextButton(
+                      text: 'Login',
+                      warnaText: Colors.blueAccent,
+                      alignment: Alignment.center,
+                      onPressed: _handleToLogin,
+                    ),
                   ],
                 ),
               ],
@@ -130,18 +143,4 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
     );
   }
-}
-
-AuthTextButton registerTextButton(BuildContext context) {
-  return AuthTextButton(
-    text: 'Login',
-    warnaText: Colors.blueAccent,
-    alignment: Alignment.center,
-    onPressed: () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
-    },
-  );
 }

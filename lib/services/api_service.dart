@@ -35,7 +35,7 @@ class ApiService {
   }
 
   // register
-  Future<void> register(
+  Future<Map<String, dynamic>> register(
     String name,
     String email,
     String password,
@@ -65,17 +65,24 @@ class ApiService {
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception(decoded['message'] ?? 'Register gagal');
     }
+
+    // Return token dari response register
+    return {'token': decoded['token']};
   }
 
   // verifikasi email
+  // verifikasi email
   Future<Map<String, dynamic>> verifyEmail(String email, String otp) async {
     final url = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.verifyEmail);
+
+    final token = await AuthStorage.getToken();
 
     final response = await http.post(
       url,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
       },
       body: jsonEncode({'email': email, 'otp': otp}),
     );

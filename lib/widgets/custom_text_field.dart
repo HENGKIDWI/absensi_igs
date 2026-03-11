@@ -6,12 +6,21 @@ class CustomTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType keyboardType;
 
+  final int? maxLength;
+  final TextAlign? textAlign;
+  final InputDecoration? decoration;
+  final Function(String)? onChanged;
+
   const CustomTextField({
     super.key,
     required this.label,
     required this.controller,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
+    this.maxLength,
+    this.textAlign,
+    this.decoration,
+    this.onChanged,
   });
 
   @override
@@ -20,10 +29,15 @@ class CustomTextField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+      maxLength: maxLength,
+      textAlign: textAlign ?? TextAlign.start,
+      decoration:
+          decoration ??
+          InputDecoration(
+            labelText: label,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+      onChanged: onChanged,
     );
   }
 }

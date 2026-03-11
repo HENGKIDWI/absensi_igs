@@ -56,7 +56,16 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _apiService.register(name, email, password, confirmPassword);
+      final result = await _apiService.register(
+        name,
+        email,
+        password,
+        confirmPassword,
+      );
+
+      // Simpan token dari hasil register
+      final token = result['token'];
+      await AuthStorage.saveToken(token);
 
       pendingEmail = email;
     } catch (e) {
@@ -75,10 +84,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final result = await _apiService.verifyEmail(email, otp);
 
-      final token = result['token'];
-
-      await AuthStorage.saveToken(token);
-
+      // Token tidak perlu disimpan lagi, langsung ambil user
       user = result['user'];
 
       isVerified = true;
