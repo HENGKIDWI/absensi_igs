@@ -8,5 +8,6 @@ class ApiEndpoint {
   static const login = "/api/login";
   static const user = "/api/user";
   static const logout = "/api/logout";
-  static const verifyEmail = "/api/dashboard";
+  static const verifyEmail = "/api/email/verify-otp";
+  static const resendOtp = "/api/email/resend-otp";
 }

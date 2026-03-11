@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:igs_absensi/page/home.dart';
 import 'package:igs_absensi/page/lupa_password.dart';
 import 'package:igs_absensi/page/register.dart';
+import 'package:igs_absensi/page/verify_email.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
 import 'package:igs_absensi/widgets/auth_text_button.dart';
 import 'package:igs_absensi/widgets/custom_text_field.dart';
 import 'package:igs_absensi/widgets/primary_button.dart';
-import 'package:igs_absensi/widgets/verify_email_dialog.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -127,28 +127,16 @@ class _LoginPageState extends State<LoginPage> {
           }
         } catch (e) {
           if (e.toString().contains('EMAIL_NOT_VERIFIED')) {
-            // Tampilkan dialog verifikasi
             if (context.mounted) {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (_) => VerifyEmailDialog(
-                  email: emailController.text,
-                  password: passwordController.text,
-                  onVerified: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const HomePage()),
-                      (route) => false,
-                    );
-                  },
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EmailVerifyPage(email: emailController.text),
                 ),
               );
             }
           } else {
-            // Error lain (salah password, dll)
             ScaffoldMessenger.of(
-              // ignore: use_build_context_synchronously
               context,
             ).showSnackBar(SnackBar(content: Text(e.toString())));
           }

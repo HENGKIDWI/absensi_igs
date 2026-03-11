@@ -7,31 +7,35 @@ class AuthProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   bool isLoading = false;
-  User? user;
   bool isVerified = false;
 
-  // login
+  User? user;
+
+  String? pendingEmail;
+
+  // LOGIN
   Future<void> login({required String email, required String password}) async {
     isLoading = true;
-    isVerified = false;
     notifyListeners();
 
     try {
-      final result = await _apiService.login(email, password);
-      final token = result['token'];
+      final success = await _apiService.login(email, password);
 
-      if (token == null) throw Exception("Token tidak ditemukan");
-
-      final verified = await _apiService.verifiEmail(token);
-
-      if (!verified) {
-        await AuthStorage.saveToken(token);
-        throw Exception('EMAIL_NOT_VERIFIED');
+      if (!success) {
+        throw Exception("LOGIN_FAILED");
       }
 
-      await AuthStorage.saveToken(token);
-      user = await _apiService.getUser(token);
-      isVerified = true;
+      final token = await AuthStorage.getToken();
+
+      user = await _apiService.getUser(token!);
+
+      if (user!.emailVerifiedAt != null) {
+        isVerified = true;
+      } else {
+        isVerified = false;
+        pendingEmail = email;
+        throw Exception("EMAIL_NOT_VERIFIED");
+      }
     } catch (e) {
       debugPrint("LOGIN ERROR: $e");
       rethrow;
@@ -41,7 +45,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // register
+  // REGISTER
   Future<void> register({
     required String name,
     required String email,
@@ -53,7 +57,8 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       await _apiService.register(name, email, password, confirmPassword);
-      await login(email: email, password: password);
+
+      pendingEmail = email;
     } catch (e) {
       rethrow;
     } finally {
@@ -62,36 +67,73 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // cek verifikasi
-  Future<bool> checkEmailVerified() async {
-    final token = await AuthStorage.getToken();
-    if (token == null) return false;
+  // VERIFY OTP
+  Future<void> verifyOtp({required String email, required String otp}) async {
+    isLoading = true;
+    notifyListeners();
 
     try {
-      final response = await _apiService.verifiEmail(token);
-      return response;
+      final result = await _apiService.verifyEmail(email, otp);
+
+      final token = result['token'];
+
+      await AuthStorage.saveToken(token);
+
+      user = result['user'];
+
+      isVerified = true;
     } catch (e) {
-      return false;
+      debugPrint("VERIFY OTP ERROR: $e");
+      rethrow;
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
   }
 
-  //load user
+  // RESEND OTP
+  Future<void> resendOtp(String email) async {
+    try {
+      await _apiService.resendOtp(email);
+    } catch (e) {
+      debugPrint("RESEND OTP ERROR: $e");
+    }
+  }
+
+  // LOAD USER
   Future<void> loadUser() async {
     final token = await AuthStorage.getToken();
-    if (token == null) return;
+
+    if (token == null) {
+      debugPrint("User belum login");
+      return;
+    }
 
     try {
-      user = await _apiService.getUser(token);
+      final userData = await _apiService.getUser(token);
+
+      user = userData;
+
+      if (user!.emailVerifiedAt != null) {
+        isVerified = true;
+        debugPrint("Email sudah diverifikasi");
+      } else {
+        isVerified = false;
+        debugPrint("Email belum diverifikasi");
+      }
+
       notifyListeners();
     } catch (e) {
       debugPrint("LOAD USER ERROR: $e");
     }
   }
 
-  // logout
+  // LOGOUT
   Future<void> logout() async {
     await AuthStorage.clear();
+
     user = null;
+
     notifyListeners();
   }
 }

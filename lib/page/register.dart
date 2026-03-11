@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:igs_absensi/page/home.dart';
-import 'package:igs_absensi/widgets/verify_email_dialog.dart';
+import 'package:igs_absensi/page/verify_email.dart';
 import 'package:provider/provider.dart';
 import 'package:igs_absensi/page/login.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
@@ -97,44 +96,18 @@ class _RegisterPageState extends State<RegisterPage> {
                                       confirmPasswordController.text,
                                 );
 
-                                if (context.mounted) {
-                                  Navigator.pushAndRemoveUntil(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const HomePage(),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EmailVerifyPage(
+                                      email: emailController.text,
                                     ),
-                                    (route) => false,
-                                  );
-                                }
+                                  ),
+                                );
                               } catch (e) {
-                                if (e.toString().contains(
-                                  'EMAIL_NOT_VERIFIED',
-                                )) {
-                                  if (context.mounted) {
-                                    showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (_) => VerifyEmailDialog(
-                                        email: emailController.text,
-                                        password: passwordController.text,
-                                        onVerified: () {
-                                          Navigator.pushAndRemoveUntil(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => const HomePage(),
-                                            ),
-                                            (route) => false,
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  }
-                                } else {
-                                  // ignore: use_build_context_synchronously
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(e.toString())),
-                                  );
-                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(e.toString())),
+                                );
                               }
                             },
                           );
