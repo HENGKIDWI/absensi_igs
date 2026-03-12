@@ -71,7 +71,6 @@ class ApiService {
   }
 
   // verifikasi email
-  // verifikasi email
   Future<Map<String, dynamic>> verifyEmail(String email, String otp) async {
     final url = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.verifyEmail);
 

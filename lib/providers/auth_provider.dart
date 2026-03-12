@@ -63,7 +63,6 @@ class AuthProvider extends ChangeNotifier {
         confirmPassword,
       );
 
-      // Simpan token dari hasil register
       final token = result['token'];
       await AuthStorage.saveToken(token);
 
@@ -84,7 +83,6 @@ class AuthProvider extends ChangeNotifier {
     try {
       final result = await _apiService.verifyEmail(email, otp);
 
-      // Token tidak perlu disimpan lagi, langsung ambil user
       user = result['user'];
 
       isVerified = true;

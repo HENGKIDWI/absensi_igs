@@ -1,7 +1,9 @@
+import 'package:igs_absensi/model/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthStorage {
   static const _tokenKey = 'auth_token';
+  static const _userdata = 'auth_user';
 
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -16,5 +18,10 @@ class AuthStorage {
   static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+  }
+
+  static Future<void> saveUser(String user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userData', user);
   }
 }

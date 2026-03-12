@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:igs_absensi/widgets/custom_text_field.dart';
+import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 import 'package:igs_absensi/widgets/primary_button.dart';
 import 'package:provider/provider.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
@@ -16,13 +16,22 @@ class EmailVerifyPage extends StatefulWidget {
 
 class _EmailVerifyPageState extends State<EmailVerifyPage> {
   final otpController = TextEditingController();
+  String otpCode = '';
 
   // ignore: unused_element
   Future<void> _handleVerifyOtp(AuthProvider auth) async {
+    if (otpCode.length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Masukkan kode OTP 6 digit")),
+      );
+      return;
+    }
+
     try {
-      await auth.verifyOtp(email: widget.email, otp: otpController.text);
+      await auth.verifyOtp(email: widget.email, otp: otpCode);
 
       if (!mounted) return;
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
@@ -30,6 +39,7 @@ class _EmailVerifyPageState extends State<EmailVerifyPage> {
       );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -57,7 +67,19 @@ class _EmailVerifyPageState extends State<EmailVerifyPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 30),
-            otpTextField(context),
+            OtpTextField(
+              numberOfFields: 6,
+              borderColor: Colors.blueAccent,
+              showFieldAsBox: true,
+              fieldWidth: 43,
+              onCodeChanged: (String code) {
+                otpCode = code;
+              },
+              onSubmit: (String code) {
+                otpCode = code;
+                _handleVerifyOtp(context.read<AuthProvider>());
+              },
+            ),
             const SizedBox(height: 20),
             Consumer<AuthProvider>(
               builder: (context, auth, _) {
@@ -74,26 +96,6 @@ class _EmailVerifyPageState extends State<EmailVerifyPage> {
           ],
         ),
       ),
-    );
-  }
-
-  CustomTextField otpTextField(BuildContext context) {
-    return CustomTextField(
-      controller: otpController,
-      keyboardType: TextInputType.number,
-      maxLength: 6,
-      textAlign: TextAlign.center,
-      decoration: const InputDecoration(
-        labelText: "Kode OTP",
-        border: OutlineInputBorder(),
-        counterText: "",
-      ),
-      onChanged: (value) {
-        if (value.length == 6) {
-          _handleVerifyOtp(context.read<AuthProvider>());
-        }
-      },
-      label: '',
     );
   }
 }
