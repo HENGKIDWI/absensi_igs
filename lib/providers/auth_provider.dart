@@ -8,10 +8,33 @@ class AuthProvider extends ChangeNotifier {
 
   bool isLoading = false;
   bool isVerified = false;
+  bool isInitialized = false;
 
   User? user;
-
   String? pendingEmail;
+
+  Future<void> tryAutoLogin() async {
+    final token = await AuthStorage.getToken();
+
+    if (token == null) {
+      isInitialized = true;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final userData = await _apiService.getUser(token);
+      user = userData;
+      isVerified = user!.emailVerifiedAt != null;
+    } catch (e) {
+      await AuthStorage.clear();
+      user = null;
+      debugPrint("AUTO LOGIN FAILED: $e");
+    } finally {
+      isInitialized = true;
+      notifyListeners();
+    }
+  }
 
   // LOGIN
   Future<void> login({required String email, required String password}) async {

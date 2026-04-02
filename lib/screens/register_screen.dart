@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:igs_absensi/page/verify_email.dart';
+import 'package:igs_absensi/screens/verify_email_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:igs_absensi/page/login.dart';
+import 'package:igs_absensi/screens/login_screen.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
 import 'package:igs_absensi/widgets/auth_text_button.dart';
 import 'package:igs_absensi/widgets/custom_text_field.dart';

@@ -1,6 +1,6 @@
 class ApiConfig {
   static const baseUrl = "http://10.0.2.2:8000";
-  // static const baseUrl = "http://192.168.1.16:8000";
+  // static const baseUrl = "http://172.16.13.160:8000";
 }
 
 class ApiEndpoint {

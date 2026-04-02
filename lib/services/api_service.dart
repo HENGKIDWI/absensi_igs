@@ -13,11 +13,16 @@ class ApiService {
       body: {"email": email, "password": password},
     );
     final data = jsonDecode(response.body);
+
     if (response.statusCode == 200) {
       final token = data['token'];
 
       if (token != null) {
         await AuthStorage.saveToken(token);
+
+        // ✅ Langsung fetch & simpan data user
+        final user = await getUser(token);
+        await AuthStorage.saveUser(jsonEncode(user.toJson()));
         return true;
       }
     }
@@ -97,6 +102,8 @@ class ApiService {
 
   // resend verifikasi email
   Future<String> resendOtp(String email) async {
+    final token = await AuthStorage.getToken();
+
     final url = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.resendOtp);
 
     final response = await http.post(
@@ -104,6 +111,7 @@ class ApiService {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
       },
       body: jsonEncode({'email': email}),
     );
@@ -114,6 +122,37 @@ class ApiService {
       return data['message'];
     } else {
       throw Exception(data['message']);
+    }
+  }
+
+  // validate token (untuk auto-login)
+  Future<User?> validateToken() async {
+    try {
+      final token = await AuthStorage.getToken();
+      if (token == null) return null;
+
+      final response = await http
+          .get(
+            Uri.parse(ApiConfig.baseUrl + ApiEndpoint.user),
+            headers: {
+              "Authorization": "Bearer $token",
+              "Accept": "application/json",
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = User.fromJson(data);
+
+        // ignore: unnecessary_cast
+        await AuthStorage.saveUser(jsonEncode(data) as String);
+        return user;
+      }
+
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 }

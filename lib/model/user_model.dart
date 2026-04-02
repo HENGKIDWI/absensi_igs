@@ -19,4 +19,13 @@ class User {
       emailVerifiedAt: json['email_verified_at'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'email_verified_at': emailVerifiedAt,
+    };
+  }
 }
