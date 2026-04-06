@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final double height;
+  final bool isLoading;
 
   const PrimaryButton({
     super.key,
     required this.text,
     required this.onPressed,
-    this.height = 48,
+    this.height = 50,
+    this.isLoading = false,
   });
 
   @override
@@ -17,7 +19,21 @@ class PrimaryButton extends StatelessWidget {
     return SizedBox(
       height: height,
       width: double.infinity,
-      child: ElevatedButton(onPressed: onPressed, child: Text(text)),
+      child: ElevatedButton(
+        onPressed: (isLoading || onPressed == null) ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+      ),
     );
   }
 }

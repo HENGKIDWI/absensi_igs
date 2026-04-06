@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:igs_absensi/config/auth_storage.dart';
 import 'package:igs_absensi/model/user_model.dart';
 import 'package:igs_absensi/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -15,7 +16,10 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> tryAutoLogin() async {
     final token = await AuthStorage.getToken();
-
+    // while (true) {
+    //   if (isInitialized) break;
+    //   await Future.delayed(const Duration(seconds: 1));
+    // }
     if (token == null) {
       isInitialized = true;
       notifyListeners();
@@ -156,11 +160,9 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // LOGOUT
-  Future<void> logout() async {
-    await AuthStorage.clear();
-
-    user = null;
-
-    notifyListeners();
+  static Future<void> clear() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    await prefs.remove('user');
   }
 }

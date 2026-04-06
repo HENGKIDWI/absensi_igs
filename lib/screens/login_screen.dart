@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:igs_absensi/screens/home_screen.dart';
-import 'package:igs_absensi/screens/lupa_password.dart';
+import 'package:igs_absensi/screens/forgot_password/lupa_password.dart';
 import 'package:igs_absensi/screens/register_screen.dart';
 import 'package:igs_absensi/screens/verify_email_screen.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
 import 'package:igs_absensi/widgets/auth_text_button.dart';
 import 'package:igs_absensi/widgets/custom_text_field.dart';
+import 'package:igs_absensi/widgets/password_field.dart';
 import 'package:igs_absensi/widgets/primary_button.dart';
 import 'package:provider/provider.dart';
 
@@ -100,13 +101,12 @@ class _LoginPageState extends State<LoginPage> {
                       label: 'Email',
                       controller: emailController,
                       keyboardType: TextInputType.emailAddress,
+                      prefixIcon: Icons.email,
                     ),
                     const SizedBox(height: 16),
-                    CustomTextField(
+                    PasswordField(
                       label: 'Password',
                       controller: passwordController,
-                      obscureText: true,
-                      keyboardType: TextInputType.visiblePassword,
                     ),
                     AuthTextButton(
                       text: "Lupa Password?",

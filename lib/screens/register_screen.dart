@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:igs_absensi/screens/verify_email_screen.dart';
+import 'package:igs_absensi/widgets/password_field.dart';
 import 'package:provider/provider.dart';
 import 'package:igs_absensi/screens/login_screen.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
@@ -85,6 +86,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   label: "Nama Lengkap",
                   controller: nameController,
                   keyboardType: TextInputType.name,
+                  prefixIcon: Icons.person,
                 ),
                 const SizedBox(height: 16),
 
@@ -92,22 +94,19 @@ class _RegisterPageState extends State<RegisterPage> {
                   label: "Email",
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
+                  prefixIcon: Icons.email,
                 ),
                 const SizedBox(height: 16),
 
-                CustomTextField(
+                PasswordField(
                   label: "Password",
                   controller: passwordController,
-                  obscureText: true,
-                  keyboardType: TextInputType.visiblePassword,
                 ),
                 const SizedBox(height: 16),
 
-                CustomTextField(
+                PasswordField(
                   label: "Konfirmasi Password",
                   controller: confirmPasswordController,
-                  obscureText: true,
-                  keyboardType: TextInputType.visiblePassword,
                 ),
                 const SizedBox(height: 24),
 

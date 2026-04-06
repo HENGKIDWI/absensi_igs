@@ -155,4 +155,89 @@ class ApiService {
       return null;
     }
   }
+
+  Future<String> sendOtp(String email) async {
+    final url = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.sendOtp);
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'email': email}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data['message'];
+    } else {
+      throw Exception(data['message'] ?? 'Gagal mengirim OTP');
+    }
+  }
+
+  // 2. Verifikasi OTP
+  Future<String> checkOtp(String otp) async {
+    final url = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.checkOtp);
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'otp': otp}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data['reset-token']; // ambil token reset password
+    } else {
+      throw Exception(data['message'] ?? 'OTP tidak valid');
+    }
+  }
+
+  // 3. Reset Password
+  Future<String> resetPassword(
+    String resetToken,
+    String password,
+    String passwordConfirmation,
+  ) async {
+    final url = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.resetPassword);
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'reset_token': resetToken,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data['message'];
+    } else {
+      throw Exception(data['message'] ?? 'Gagal reset password');
+    }
+  }
+
+  Future<void> logout() async {
+    final token = await AuthStorage.getToken();
+
+    await http.post(
+      Uri.parse(ApiConfig.baseUrl + ApiEndpoint.logout),
+      headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
+    );
+
+    // hapus token & user dari storage
+    await AuthStorage.clear();
+  }
 }

@@ -10,4 +10,7 @@ class ApiEndpoint {
   static const logout = "/api/logout";
   static const verifyEmail = "/api/email/verify-otp";
   static const resendOtp = "/api/email/resend-otp";
+  static const sendOtp = "/api/reset-password";
+  static const checkOtp = "/api/otp-check";
+  static const resetPassword = "/api/new-password";
 }

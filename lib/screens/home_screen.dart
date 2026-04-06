@@ -24,7 +24,7 @@ class _HomePageState extends State<HomePage> {
     return [
       CustomNavBarScreen(screen: const DashboardTab()),
       CustomNavBarScreen(screen: const QrScannerPage()),
-      CustomNavBarScreen(screen: const ProfilTab()),
+      CustomNavBarScreen(screen: const ProfileScreen()),
     ];
   }
 
@@ -42,16 +42,13 @@ class _HomePageState extends State<HomePage> {
       customWidget: _BottomNav(
         selectedIndex: _controller.index,
         onItemSelected: (index) {
-          setState(() => _controller.index = index); // WAJIB ada ini
+          setState(() => _controller.index = index);
         },
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// BOTTOM NAV
-// ─────────────────────────────────────────────────────────────
 class _BottomNav extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;

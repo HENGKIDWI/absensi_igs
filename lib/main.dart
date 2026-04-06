@@ -4,14 +4,12 @@ import 'package:igs_absensi/screens/login_screen.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  final authProvider = AuthProvider();
-  await authProvider.tryAutoLogin();
-
+void main() {
   runApp(
-    ChangeNotifierProvider.value(value: authProvider, child: const MyApp()),
+    ChangeNotifierProvider(
+      create: (_) => AuthProvider()..tryAutoLogin(),
+      child: const MyApp(),
+    ),
   );
 }
 
