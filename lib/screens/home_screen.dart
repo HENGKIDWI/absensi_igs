@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:igs_absensi/screens/my_course_screen.dart';
 import 'package:igs_absensi/screens/qr_scanner_screen.dart';
 import 'package:igs_absensi/screens/dashboard_screen.dart';
 import 'package:igs_absensi/screens/profil_screen.dart';
+import 'package:igs_absensi/screens/search_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 class HomePage extends StatefulWidget {
@@ -22,9 +24,13 @@ class _HomePageState extends State<HomePage> {
 
   List<CustomNavBarScreen> _buildScreens() {
     return [
-      CustomNavBarScreen(screen: const DashboardTab()),
-      CustomNavBarScreen(screen: const QrScannerPage()),
-      CustomNavBarScreen(screen: const ProfileScreen()),
+      CustomNavBarScreen(screen: const DashboardTab()), // index 0 - Dashboard
+      CustomNavBarScreen(screen: const SearchScreen()), // index 1 - Pencarian
+      CustomNavBarScreen(
+        screen: const QrScannerPage(),
+      ), // index 2 - QR (FAB tengah)
+      CustomNavBarScreen(screen: const MyCourseScreen()), // index 3 - My Course
+      CustomNavBarScreen(screen: const ProfileScreen()), // index 4 - Profil
     ];
   }
 
@@ -34,7 +40,7 @@ class _HomePageState extends State<HomePage> {
       context,
       controller: _controller,
       screens: _buildScreens(),
-      itemCount: 3,
+      itemCount: 5,
       backgroundColor: Colors.white,
       handleAndroidBackButtonPress: true,
       stateManagement: true,
@@ -81,36 +87,40 @@ class _BottomNav extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // Tab 0 - Dashboard
+                  // index 0 - Dashboard
                   Expanded(
-                    child: _buildItem(0, Icons.dashboard_rounded, 'Dashboard'),
+                    child: _buildItem(0, Icons.dashboard_rounded, 'Home'),
                   ),
-                  // Spacer ruang FAB tengah
+                  // index 1 - Pencarian
+                  Expanded(child: _buildItem(1, Icons.search, 'Pencarian')),
+                  // Spacer untuk FAB QR (index 2) di tengah
                   const SizedBox(width: 72),
-                  // Tab 2 - Profil
+                  // index 3 - My Course
+                  Expanded(child: _buildItem(3, Icons.book, 'Kelas Saya')),
+                  // index 4 - Profil
                   Expanded(
-                    child: _buildItem(2, Icons.person_rounded, 'Profil'),
+                    child: _buildItem(4, Icons.person_rounded, 'Profil'),
                   ),
                 ],
               ),
             ),
           ),
 
-          // FAB tengah - Tab 1 (Absensi)
+          // FAB tengah - index 2 (QR Scanner)
           Positioned(
             bottom: 16,
             left: 0,
             right: 0,
             child: Center(
               child: GestureDetector(
-                onTap: () => onItemSelected(1),
+                onTap: () => onItemSelected(2),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: selectedIndex == 1
+                    color: selectedIndex == 2
                         ? Colors.blueAccent
                         : Colors.blueAccent.withOpacity(0.85),
                     boxShadow: [
@@ -124,7 +134,7 @@ class _BottomNav extends StatelessWidget {
                   child: Icon(
                     Icons.qr_code_scanner_rounded,
                     color: Colors.white,
-                    size: selectedIndex == 1 ? 30 : 26,
+                    size: selectedIndex == 2 ? 30 : 26,
                   ),
                 ),
               ),
