@@ -13,4 +13,5 @@ class ApiEndpoint {
   static const sendOtp = "/api/reset-password";
   static const checkOtp = "/api/otp-check";
   static const resetPassword = "/api/new-password";
+  static const search = "/api/search";
 }

@@ -3,7 +3,7 @@ import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 import 'package:igs_absensi/widgets/primary_button.dart';
 import 'package:provider/provider.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
-import 'package:igs_absensi/screens/home_screen.dart';
+import 'package:igs_absensi/screens/navbar.dart';
 
 class EmailVerifyPage extends StatefulWidget {
   final String email;

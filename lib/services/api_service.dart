@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:igs_absensi/config/api.dart';
 import 'package:igs_absensi/config/auth_storage.dart';
+import 'package:igs_absensi/model/search_model.dart';
 import 'package:igs_absensi/model/user_model.dart';
 
 class ApiService {
@@ -239,5 +240,32 @@ class ApiService {
 
     // hapus token & user dari storage
     await AuthStorage.clear();
+  }
+
+  Future<SearchResult> searchCourses(String query, {String? cursor}) async {
+    final token = await AuthStorage.getToken();
+
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.search).replace(
+      queryParameters: {
+        if (query.isNotEmpty) 'q': query,
+        if (cursor != null) 'cursor': cursor,
+      },
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return SearchResult.fromJson(data);
+    } else {
+      throw Exception(data['message'] ?? 'Gagal mengambil data');
+    }
   }
 }

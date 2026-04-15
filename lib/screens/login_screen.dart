@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:igs_absensi/screens/home_screen.dart';
+import 'package:igs_absensi/screens/navbar.dart';
 import 'package:igs_absensi/screens/forgot_password/lupa_password.dart';
 import 'package:igs_absensi/screens/register_screen.dart';
 import 'package:igs_absensi/screens/verify_email_screen.dart';
