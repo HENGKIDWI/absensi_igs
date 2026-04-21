@@ -73,33 +73,36 @@ class _BottomNav extends StatelessWidget {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              height: 64,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // index 0 - Dashboard
-                  Expanded(child: _buildItem(0, Icons.home, 'Home')),
-                  // index 1 - Pencarian
-                  Expanded(child: _buildItem(1, Icons.search, 'Pencarian')),
-                  // Spacer untuk FAB QR (index 2) di tengah
-                  const SizedBox(width: 72),
-                  // index 3 - My Course
-                  Expanded(child: _buildItem(3, Icons.class_, 'Kelas Saya')),
-                  // index 4 - Profil
-                  Expanded(
-                    child: _buildItem(4, Icons.person_rounded, 'Profil'),
-                  ),
-                ],
+            child: ClipPath(
+              clipper: BottomNavClipper(),
+              child: Container(
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // index 0 - Dashboard
+                    Expanded(child: _buildItem(0, Icons.home, 'Home')),
+                    // index 1 - Pencarian
+                    Expanded(child: _buildItem(1, Icons.list, 'Daftar Kelas')),
+                    // Spacer untuk FAB QR (index 2) di tengah
+                    const SizedBox(width: 72),
+                    // index 3 - My Course
+                    Expanded(child: _buildItem(3, Icons.class_, 'Kelas Saya')),
+                    // index 4 - Profil
+                    Expanded(
+                      child: _buildItem(4, Icons.person_rounded, 'Profil'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -169,4 +172,41 @@ class _BottomNav extends StatelessWidget {
       ),
     );
   }
+}
+
+class BottomNavClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+
+    final fabRadius = 36.0;
+    final centerX = size.width / 2;
+
+    path.lineTo(centerX - fabRadius - 10, 0);
+
+    path.quadraticBezierTo(
+      centerX - fabRadius,
+      0,
+      centerX - fabRadius + 10,
+      10,
+    );
+
+    path.arcToPoint(
+      Offset(centerX + fabRadius - 10, 10),
+      radius: Radius.circular(fabRadius),
+      clockwise: false,
+    );
+
+    path.quadraticBezierTo(centerX + fabRadius, 0, centerX + fabRadius + 10, 0);
+
+    path.lineTo(size.width, 0);
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

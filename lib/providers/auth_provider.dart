@@ -78,6 +78,8 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String confirmPassword,
+    required int facultyId,
+    required int studyProgramId,
   }) async {
     isLoading = true;
     notifyListeners();
@@ -88,6 +90,8 @@ class AuthProvider extends ChangeNotifier {
         email,
         password,
         confirmPassword,
+        facultyId,
+        studyProgramId,
       );
 
       final token = result['token'];

@@ -18,7 +18,35 @@ class ScheduleItem {
   });
 }
 
-// Data dummy — nanti ganti dengan call API
+// Model data grafik kehadiran
+class AttendanceData {
+  final String day;
+  final int hadir;
+  final int izin;
+  final int alfa;
+  final int total;
+
+  const AttendanceData({
+    required this.day,
+    required this.hadir,
+    required this.izin,
+    required this.alfa,
+    required this.total,
+  });
+
+  double get percentage => total == 0 ? 0 : hadir / total;
+}
+
+// Data dummy grafik — nanti ganti dengan call API
+const _weeklyAttendance = [
+  AttendanceData(day: 'Sen', hadir: 3, izin: 0, alfa: 0, total: 3),
+  AttendanceData(day: 'Sel', hadir: 2, izin: 1, alfa: 0, total: 3),
+  AttendanceData(day: 'Rab', hadir: 2, izin: 1, alfa: 1, total: 4),
+  AttendanceData(day: 'Kam', hadir: 1, izin: 0, alfa: 1, total: 2),
+  AttendanceData(day: 'Jum', hadir: 2, izin: 1, alfa: 0, total: 3),
+  AttendanceData(day: 'Sab', hadir: 0, izin: 0, alfa: 1, total: 1),
+];
+
 const _today = [
   ScheduleItem(
     name: 'Matematika Diskrit E',
@@ -72,18 +100,45 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   bool _nextWeekExpanded = false;
+  late AnimationController _barAnimController;
+  late Animation<double> _barAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _barAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _barAnim = CurvedAnimation(
+      parent: _barAnimController,
+      curve: Curves.easeOutCubic,
+    );
+    _barAnimController.forward();
+  }
+
+  @override
+  void dispose() {
+    _barAnimController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 171, 228, 255),
+      backgroundColor: const Color(0xFFABE4FF),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           children: [
             _buildTopBar(),
+            const SizedBox(height: 20),
+
+            // ── Grafik Kehadiran ──
+            _AttendanceChart(animation: _barAnim),
             const SizedBox(height: 20),
 
             _sectionLabel('Hari ini'),
@@ -119,7 +174,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Top bar: greeting + avatar
   Widget _buildTopBar() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -154,20 +208,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Label section (TODAY, TOMORROW, dll)
   Widget _sectionLabel(String label) {
     return Text(
       label.toUpperCase(),
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w600,
-        color: Colors.black,
+        color: Colors.black87,
         letterSpacing: 0.8,
       ),
     );
   }
 
-  // Card kosong
   Widget _emptyCard() {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -186,7 +238,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Header Next Week dengan chevron
   Widget _buildNextWeekHeader() {
     return GestureDetector(
       onTap: () => setState(() => _nextWeekExpanded = !_nextWeekExpanded),
@@ -212,7 +263,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Tombol lihat jadwal selengkapnya
   Widget _buildFullScheduleButton() {
     return OutlinedButton(
       onPressed: () {
@@ -232,6 +282,337 @@ class _HomeScreenState extends State<HomeScreen> {
         'Lihat Jadwal Selengkapnya',
         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
       ),
+    );
+  }
+}
+
+// ── Widget Grafik Kehadiran ───────────────────────────────
+class _AttendanceChart extends StatelessWidget {
+  final Animation<double> animation;
+
+  const _AttendanceChart({required this.animation});
+
+  int get _totalHadir => _weeklyAttendance.fold(0, (sum, e) => sum + e.hadir);
+  int get _totalIzin => _weeklyAttendance.fold(0, (sum, e) => sum + e.izin);
+  int get _totalAlfa => _weeklyAttendance.fold(0, (sum, e) => sum + e.alfa);
+  int get _totalKelas => _weeklyAttendance.fold(0, (sum, e) => sum + e.total);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Kehadiran Minggu Ini',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$_totalHadir dari $_totalKelas kelas',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: _totalKelas == 0
+                          ? '0'
+                          : '${((_totalHadir / _totalKelas) * 100).round()}',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0C447C),
+                      ),
+                    ),
+                    const TextSpan(
+                      text: '%',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF0C447C),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // ── Kartu ringkasan Hadir / Izin / Alfa ──
+          Row(
+            children: [
+              _SummaryChip(
+                label: 'Hadir',
+                value: _totalHadir,
+                bgColor: const Color(0xFFEAF3DE),
+                textColor: const Color(0xFF27500A),
+                iconColor: const Color(0xFF4CAF82),
+                icon: Icons.check_circle_outline_rounded,
+              ),
+              const SizedBox(width: 8),
+              _SummaryChip(
+                label: 'Izin',
+                value: _totalIzin,
+                bgColor: const Color(0xFFE8F0FB),
+                textColor: const Color(0xFF1A3A6B),
+                iconColor: const Color(0xFF4A7BD4),
+                icon: Icons.info_outline_rounded,
+              ),
+              const SizedBox(width: 8),
+              _SummaryChip(
+                label: 'Alfa',
+                value: _totalAlfa,
+                bgColor: const Color(0xFFFCEBEB),
+                textColor: const Color(0xFF791F1F),
+                iconColor: const Color(0xFFEF5350),
+                icon: Icons.cancel_outlined,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── Bar chart ──
+          AnimatedBuilder(
+            animation: animation,
+            builder: (context, _) {
+              return SizedBox(
+                height: 110,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: _weeklyAttendance.map((data) {
+                    return _buildBar(data, animation.value);
+                  }).toList(),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 10),
+
+          // ── Legenda ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _Legend(color: const Color(0xFF4CAF82), label: 'Hadir'),
+              const SizedBox(width: 14),
+              _Legend(color: const Color(0xFF4A7BD4), label: 'Izin'),
+              const SizedBox(width: 14),
+              _Legend(color: const Color(0xFFEF5350), label: 'Alfa'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBar(AttendanceData data, double animValue) {
+    const maxBarHeight = 72.0;
+
+    // Tinggi masing-masing segmen
+    final totalPct = data.total == 0 ? 0.0 : 1.0;
+    final hadirH =
+        maxBarHeight *
+        (data.total == 0 ? 0 : data.hadir / data.total) *
+        animValue;
+    final izinH =
+        maxBarHeight *
+        (data.total == 0 ? 0 : data.izin / data.total) *
+        animValue;
+    final alfaH =
+        maxBarHeight *
+        (data.total == 0 ? 0 : data.alfa / data.total) *
+        animValue;
+    final totalH = (hadirH + izinH + alfaH).clamp(4.0, maxBarHeight);
+
+    final isToday = data.day == 'Rab';
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            // Label nilai di atas bar
+            Text(
+              '${data.hadir}/${data.total}',
+              style: TextStyle(
+                fontSize: 9,
+                color: isToday ? const Color(0xFF0C447C) : Colors.grey.shade400,
+                fontWeight: isToday ? FontWeight.w700 : FontWeight.normal,
+              ),
+            ),
+            const SizedBox(height: 3),
+
+            // Stacked bar: Alfa (bawah) → Izin → Hadir (atas)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                width: double.infinity,
+                height: totalH,
+                child: Column(
+                  children: [
+                    // Hadir (atas)
+                    if (hadirH > 0)
+                      Flexible(
+                        flex: data.hadir,
+                        child: Container(
+                          color: isToday
+                              ? const Color(0xFF4CAF82)
+                              : const Color(0xFF4CAF82).withOpacity(0.5),
+                        ),
+                      ),
+                    // Izin (tengah)
+                    if (izinH > 0)
+                      Flexible(
+                        flex: data.izin,
+                        child: Container(
+                          color: isToday
+                              ? const Color(0xFF4A7BD4)
+                              : const Color(0xFF4A7BD4).withOpacity(0.5),
+                        ),
+                      ),
+                    // Alfa (bawah)
+                    if (alfaH > 0)
+                      Flexible(
+                        flex: data.alfa,
+                        child: Container(
+                          color: isToday
+                              ? const Color(0xFFEF5350)
+                              : const Color(0xFFEF5350).withOpacity(0.5),
+                        ),
+                      ),
+                    // Placeholder agar bar minimal terlihat saat semua 0
+                    if (data.hadir == 0 && data.izin == 0 && data.alfa == 0)
+                      Expanded(child: Container(color: Colors.grey.shade200)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // Label hari
+            Text(
+              data.day,
+              style: TextStyle(
+                fontSize: 11,
+                color: isToday ? const Color(0xFF0C447C) : Colors.grey.shade500,
+                fontWeight: isToday ? FontWeight.w700 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Chip ringkasan Hadir / Izin / Alfa ───────────────────
+class _SummaryChip extends StatelessWidget {
+  final String label;
+  final int value;
+  final Color bgColor;
+  final Color textColor;
+  final Color iconColor;
+  final IconData icon;
+
+  const _SummaryChip({
+    required this.label,
+    required this.value,
+    required this.bgColor,
+    required this.textColor,
+    required this.iconColor,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: iconColor),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$value',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: textColor.withOpacity(0.75),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Legenda bar chart ─────────────────────────────────────
+class _Legend extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _Legend({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+        ),
+      ],
     );
   }
 }
@@ -256,7 +637,6 @@ class _ScheduleCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Kiri: nama, ruangan, status
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,7 +675,6 @@ class _ScheduleCard extends StatelessWidget {
               ],
             ),
           ),
-          // Kanan: jam
           Text(
             item.time,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
@@ -305,7 +684,6 @@ class _ScheduleCard extends StatelessWidget {
     );
   }
 
-  // Mapping status → warna
   _StatusStyle _statusConfig(AttendanceStatus status) {
     switch (status) {
       case AttendanceStatus.belumMulai:

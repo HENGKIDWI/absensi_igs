@@ -13,8 +13,9 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
-  List<ClassModel> _classes = [];
+  List<ClassModel> _courses = [];
   String? _nextCursor;
   bool _hasMore = false;
   bool _isLoading = false;
@@ -27,12 +28,20 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _fetchData(); // load semua kelas saat pertama buka
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 200 &&
+          !_isLoadingMore) {
+        _loadMore();
+      }
+    });
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -49,7 +58,7 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _classes = [];
+      _courses = [];
       _nextCursor = null;
     });
 
@@ -58,7 +67,7 @@ class _SearchScreenState extends State<SearchScreen> {
         query ?? _searchController.text.trim(),
       );
       setState(() {
-        _classes = result.classes;
+        _courses = result.courses;
         _nextCursor = result.nextCursor;
         _hasMore = result.hasMore;
       });
@@ -83,7 +92,7 @@ class _SearchScreenState extends State<SearchScreen> {
         cursor: _nextCursor,
       );
       setState(() {
-        _classes.addAll(result.classes);
+        _courses.addAll(result.courses);
         _nextCursor = result.nextCursor;
         _hasMore = result.hasMore;
       });
@@ -99,14 +108,16 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.lightBlueAccent,
       appBar: AppBar(
         title: const Text(
           'Daftar Kelas',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.black),
         ),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
+        bottom: false,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -163,27 +174,20 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     // Kosong
-    if (_classes.isEmpty) {
+    if (_courses.isEmpty) {
       return const Center(child: Text('Kelas tidak ditemukan.'));
     }
 
     // List kelas
     return ListView.separated(
-      itemCount: _classes.length + (_hasMore ? 1 : 0),
+      controller: _scrollController,
+      itemCount: _courses.length + (_hasMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
-        if (index == _classes.length) {
-          return Center(
-            child: _isLoadingMore
-                ? const CircularProgressIndicator()
-                : TextButton(
-                    onPressed: _loadMore,
-                    child: const Text('Muat lebih banyak'),
-                  ),
-          );
+        if (index == _courses.length) {
+          return Center(child: CircularProgressIndicator());
         }
-
-        return _ClassCard(classModel: _classes[index]);
+        return _ClassCard(classModel: _courses[index]);
       },
     );
   }

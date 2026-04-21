@@ -1,9 +1,12 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:igs_absensi/config/api.dart';
 import 'package:igs_absensi/config/auth_storage.dart';
+import 'package:igs_absensi/model/faculty.dart';
 import 'package:igs_absensi/model/search_model.dart';
+import 'package:igs_absensi/model/study_program.dart';
 import 'package:igs_absensi/model/user_model.dart';
 
 class ApiService {
@@ -45,12 +48,14 @@ class ApiService {
     String name,
     String email,
     String password,
-    String passwordConfirmation,
+    String confirmPassword,
+    int facultyId, // ← tambah
+    int studyProgramId, // ← tambah
   ) async {
-    final url = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.register);
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.register);
 
     final response = await http.post(
-      url,
+      uri,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -59,21 +64,18 @@ class ApiService {
         'name': name,
         'email': email,
         'password': password,
-        'password_confirmation': passwordConfirmation,
+        'password_confirmation': confirmPassword,
+        'faculty_id': facultyId, // ← tambah
+        'study_program_id': studyProgramId, // ← tambah
       }),
     );
 
-    print("REGISTER STATUS: ${response.statusCode}");
-    print("REGISTER BODY: ${response.body}");
+    final data = jsonDecode(response.body);
 
-    final decoded = jsonDecode(response.body);
-
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception(decoded['message'] ?? 'Register gagal');
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return data;
     }
-
-    // Return token dari response register
-    return {'token': decoded['token']};
+    throw Exception(data['message'] ?? 'Gagal registrasi');
   }
 
   // verifikasi email
@@ -252,6 +254,11 @@ class ApiService {
       },
     );
 
+    // ── Debug: lihat URL & token ──
+    debugPrint('=== SEARCH REQUEST ===');
+    debugPrint('URL   : $uri');
+    debugPrint('Token : $token');
+
     final response = await http.get(
       uri,
       headers: {
@@ -260,6 +267,10 @@ class ApiService {
       },
     );
 
+    // ── Debug: lihat response ──
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body  : ${response.body}');
+
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 200) {
@@ -267,5 +278,43 @@ class ApiService {
     } else {
       throw Exception(data['message'] ?? 'Gagal mengambil data');
     }
+  }
+
+  Future<List<FacultyModel>> getFaculties() async {
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.faculty);
+    final response = await http.get(
+      uri,
+      headers: {'Accept': 'application/json'},
+    );
+
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body  : ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return (data['faculties'] as List)
+          .map((e) => FacultyModel.fromJson(e))
+          .toList();
+    }
+    throw Exception('Gagal mengambil data fakultas');
+  }
+
+  Future<List<StudyProgramModel>> getStudyPrograms(int facultyId) async {
+    final uri = Uri.parse(
+      ApiConfig.baseUrl + ApiEndpoint.studyPrograms,
+    ).replace(queryParameters: {'faculty_id': '$facultyId'});
+
+    final response = await http.get(
+      uri,
+      headers: {'Accept': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return (data['study_programs'] as List)
+          .map((e) => StudyProgramModel.fromJson(e))
+          .toList();
+    }
+    throw Exception('Gagal mengambil data program studi');
   }
 }

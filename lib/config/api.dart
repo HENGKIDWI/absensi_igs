@@ -14,4 +14,7 @@ class ApiEndpoint {
   static const checkOtp = "/api/otp-check";
   static const resetPassword = "/api/new-password";
   static const search = "/api/search";
+  static const faculty = "/api/faculties";
+  static const studyPrograms = "/api/study-program";
+  static const schedule = "/api/schedule";
 }
