@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:igs_absensi/screens/my_class.dart';
+import 'package:igs_absensi/screens/my_class/my_class.dart';
 import 'package:igs_absensi/screens/qr_scanner_screen.dart';
-import 'package:igs_absensi/screens/home_screen.dart';
+import 'package:igs_absensi/screens/home/home_screen.dart';
 import 'package:igs_absensi/screens/profil_screen.dart';
 import 'package:igs_absensi/screens/search_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
@@ -29,7 +29,7 @@ class _HomePageState extends State<HomePage> {
       CustomNavBarScreen(
         screen: const QrScannerPage(),
       ), // index 2 - QR (FAB tengah)
-      CustomNavBarScreen(screen: const MyCourseScreen()), // index 3 - My Course
+      CustomNavBarScreen(screen: const MyClassScreen()), // index 3 - My Course
       CustomNavBarScreen(screen: const ProfileScreen()), // index 4 - Profil
     ];
   }

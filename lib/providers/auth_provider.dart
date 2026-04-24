@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:igs_absensi/config/auth_storage.dart';
-import 'package:igs_absensi/model/user_model.dart';
+import 'package:igs_absensi/model/user.dart';
 import 'package:igs_absensi/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

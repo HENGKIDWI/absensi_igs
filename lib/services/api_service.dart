@@ -2,12 +2,16 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:igs_absensi/DTO/schedule.dart';
 import 'package:igs_absensi/config/api.dart';
 import 'package:igs_absensi/config/auth_storage.dart';
+import 'package:igs_absensi/DTO/class.dart';
 import 'package:igs_absensi/model/faculty.dart';
-import 'package:igs_absensi/model/search_model.dart';
+import 'package:igs_absensi/model/schedule.dart';
+import 'package:igs_absensi/model/search.dart';
 import 'package:igs_absensi/model/study_program.dart';
-import 'package:igs_absensi/model/user_model.dart';
+import 'package:igs_absensi/model/user.dart';
+import 'package:igs_absensi/screens/my_class/my_class_detail_screen.dart';
 
 class ApiService {
   // login
@@ -316,5 +320,151 @@ class ApiService {
           .toList();
     }
     throw Exception('Gagal mengambil data program studi');
+  }
+
+  Future<ScheduleResponse> getSchedule() async {
+    final token = await AuthStorage.getToken();
+
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.schedule);
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return ScheduleResponse.fromJson(data as Map<String, dynamic>);
+    } else {
+      throw Exception(data['message'] ?? 'Gagal mengambil jadwal');
+    }
+  }
+
+  Future<String> enrollCourse(int courseId) async {
+    final token = await AuthStorage.getToken();
+
+    final uri = Uri.parse(
+      '${ApiConfig.baseUrl}${ApiEndpoint.enroll}/$courseId/enroll',
+    );
+
+    final response = await http.post(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final message = data['message'] as String? ?? 'Terjadi kesalahan';
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return message;
+    }
+    throw Exception(message);
+  }
+
+  // GET /api/student/classes → daftar kelas yang diikuti student saat ini
+  Future<List<ClassModel>> getEnrolledClasses() async {
+    final token = await AuthStorage.getToken();
+
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.enrolledClasses);
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode == 200) {
+      final list = data['data'] as List<dynamic>? ?? [];
+      return list
+          .map((e) => ClassModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    throw Exception(data['message'] ?? 'Gagal mengambil kelas');
+  }
+
+  // GET /api/student/classes/{course_id} → detail kelas (termasuk daftar pertemuan)
+  Future<ClassDetailData> getClassDetail(int courseId) async {
+    final token = await AuthStorage.getToken();
+
+    final uri = Uri.parse(
+      '${ApiConfig.baseUrl}${ApiEndpoint.classDetail}/$courseId',
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode == 200) {
+      final data = body['data'] as Map<String, dynamic>;
+
+      final courseJson = data['course'] as Map<String, dynamic>;
+      final meetingsJson = data['meetings'] as List<dynamic>? ?? [];
+
+      final course = ClassModel(
+        id: courseJson['id'] as int,
+        name: courseJson['name'] as String? ?? '-',
+        room: _resolveRoom(courseJson),
+        startTime: _formatTime(courseJson['start_time'] as String?),
+        endTime: _formatTime(courseJson['end_time'] as String?),
+        studyProgram:
+            (courseJson['study_program'] as Map<String, dynamic>?)?['name']
+                as String?,
+        semester:
+            (courseJson['semester'] as Map<String, dynamic>?)?['name']
+                as String?,
+        lecturerName:
+            ((courseJson['lecturer'] as Map<String, dynamic>?)?['user']
+                    as Map<String, dynamic>?)?['name']
+                as String?,
+      );
+
+      final meetings = meetingsJson
+          .map((e) => MeetingModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      return ClassDetailData(course: course, meetings: meetings);
+    }
+
+    throw Exception(body['message'] ?? 'Gagal mengambil detail kelas');
+  }
+
+  String? _resolveRoom(Map<String, dynamic> json) {
+    final classroom = json['classroom'] as Map<String, dynamic>?;
+    if (classroom == null) return json['room'] as String?;
+
+    final locationName =
+        (classroom['location'] as Map<String, dynamic>?)?['name'] as String?;
+    final roomName = classroom['name'] as String?;
+
+    final parts = [
+      if (locationName != null && locationName.isNotEmpty) locationName,
+      if (roomName != null && roomName.isNotEmpty) roomName,
+    ];
+
+    return parts.isNotEmpty ? parts.join(' - ') : json['room'] as String?;
+  }
+
+  /// Helper: "07:00:00" → "07:00"
+  String? _formatTime(String? raw) {
+    if (raw == null) return null;
+    return raw.length >= 5 ? raw.substring(0, 5) : raw;
   }
 }

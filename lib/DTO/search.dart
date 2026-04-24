@@ -1,6 +1,6 @@
 // lib/model/search_model.dart
 
-import 'package:igs_absensi/model/class_model.dart';
+import 'package:igs_absensi/DTO/class.dart';
 
 class SearchResult {
   final List<ClassModel> courses;

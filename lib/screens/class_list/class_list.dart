@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:igs_absensi/model/class_model.dart';
+import 'package:igs_absensi/model/class.dart';
+import 'package:igs_absensi/screens/class_detail_screen.dart';
 import 'package:igs_absensi/services/api_service.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -22,12 +23,12 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isLoadingMore = false;
   String? _errorMessage;
 
-  Timer? _debounce; // ← tunda request saat user mengetik
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    _fetchData(); // load semua kelas saat pertama buka
+    _fetchData();
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent - 200 &&
@@ -45,7 +46,6 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  // Dipanggil tiap kali teks berubah — debounce 500ms
   void _onSearchChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
@@ -53,7 +53,6 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  // Fetch dari awal (query baru / reset)
   Future<void> _fetchData({String? query}) async {
     setState(() {
       _isLoading = true;
@@ -72,15 +71,14 @@ class _SearchScreenState extends State<SearchScreen> {
         _hasMore = result.hasMore;
       });
     } catch (e, stackTrace) {
-      print('ERROR: $e');
-      print('STACK: $stackTrace');
+      debugPrint('ERROR: $e');
+      debugPrint('STACK: $stackTrace');
       setState(() => _errorMessage = 'Gagal memuat data. Coba lagi.');
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  // Load halaman berikutnya (infinite scroll / tombol)
   Future<void> _loadMore() async {
     if (!_hasMore || _nextCursor == null || _isLoadingMore) return;
 
@@ -97,12 +95,22 @@ class _SearchScreenState extends State<SearchScreen> {
         _hasMore = result.hasMore;
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Gagal memuat lebih banyak data.')),
       );
     } finally {
       setState(() => _isLoadingMore = false);
     }
+  }
+
+  void _openDetail(ClassModel classModel) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ClassDetailScreen(classModel: classModel),
+      ),
+    );
   }
 
   @override
@@ -122,7 +130,6 @@ class _SearchScreenState extends State<SearchScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Search bar
               SearchBar(
                 controller: _searchController,
                 hintText: 'Cari kelas...',
@@ -140,8 +147,6 @@ class _SearchScreenState extends State<SearchScreen> {
                 onChanged: _onSearchChanged,
               ),
               const SizedBox(height: 16),
-
-              // Konten utama
               Expanded(child: _buildBody()),
             ],
           ),
@@ -151,12 +156,10 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildBody() {
-    // Loading awal
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Error
     if (_errorMessage != null) {
       return Center(
         child: Column(
@@ -173,30 +176,33 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
 
-    // Kosong
     if (_courses.isEmpty) {
       return const Center(child: Text('Kelas tidak ditemukan.'));
     }
 
-    // List kelas
     return ListView.separated(
       controller: _scrollController,
       itemCount: _courses.length + (_hasMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         if (index == _courses.length) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
-        return _ClassCard(classModel: _courses[index]);
+        return _ClassCard(
+          classModel: _courses[index],
+          onTap: () => _openDetail(_courses[index]),
+        );
       },
     );
   }
 }
 
-// Widget kartu per kelas
+// ── Widget kartu per kelas ────────────────────────────────
 class _ClassCard extends StatelessWidget {
   final ClassModel classModel;
-  const _ClassCard({required this.classModel});
+  final VoidCallback onTap;
+
+  const _ClassCard({required this.classModel, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -206,96 +212,100 @@ class _ClassCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.grey.shade200),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: nama kelas + room pill
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    classModel.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                if (classModel.room != null) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE6F1FB),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+      clipBehavior: Clip.hardEdge, // agar InkWell mengikuti border radius
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: nama kelas + room pill
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
                     child: Text(
-                      classModel.room!,
+                      classModel.name,
                       style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF0C447C),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+                  if (classModel.room != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE6F1FB),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        classModel.room!,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF0C447C),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
+              ),
 
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: Divider(height: 1, thickness: 0.5),
-            ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Divider(height: 1, thickness: 0.5),
+              ),
 
-            // Dosen
-            _InfoRow(
-              icon: Icons.person_outline,
-              value: classModel.lecturerName ?? '-',
-            ),
-            const SizedBox(height: 6),
+              // Dosen
+              _InfoRow(
+                icon: Icons.person_outline,
+                value: classModel.lecturerName ?? '-',
+              ),
+              const SizedBox(height: 6),
 
-            // Jam
-            _InfoRow(
-              icon: Icons.access_time_outlined,
-              value:
-                  (classModel.startTime != null && classModel.endTime != null)
-                  ? '${classModel.startTime} – ${classModel.endTime}'
-                  : '-',
-            ),
-            const SizedBox(height: 10),
+              // Jam
+              _InfoRow(
+                icon: Icons.access_time_outlined,
+                value:
+                    (classModel.startTime != null && classModel.endTime != null)
+                    ? '${classModel.startTime} – ${classModel.endTime}'
+                    : '-',
+              ),
+              const SizedBox(height: 10),
 
-            // Badge prodi & semester
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                if (classModel.studyProgram != null)
-                  _Badge(
-                    label: classModel.studyProgram!,
-                    bgColor: const Color(0xFFE1F5EE),
-                    textColor: const Color(0xFF085041),
-                  ),
-                if (classModel.semester != null)
-                  _Badge(
-                    label: classModel.semester!,
-                    bgColor: const Color(0xFFFAEEDA),
-                    textColor: const Color(0xFF633806),
-                  ),
-              ],
-            ),
-          ],
+              // Badge prodi & semester
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (classModel.studyProgram != null)
+                    _Badge(
+                      label: classModel.studyProgram!,
+                      bgColor: const Color(0xFFE1F5EE),
+                      textColor: const Color(0xFF085041),
+                    ),
+                  if (classModel.semester != null)
+                    _Badge(
+                      label: classModel.semester!,
+                      bgColor: const Color(0xFFFAEEDA),
+                      textColor: const Color(0xFF633806),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// Baris icon + teks
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String value;
@@ -319,7 +329,6 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// Badge pill
 class _Badge extends StatelessWidget {
   final String label;
   final Color bgColor;

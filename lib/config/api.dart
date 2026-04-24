@@ -16,5 +16,9 @@ class ApiEndpoint {
   static const search = "/api/search";
   static const faculty = "/api/faculties";
   static const studyPrograms = "/api/study-program";
-  static const schedule = "/api/schedule";
+  static const schedule = "/api/student/schedule";
+  static const allClasses = "/api/student/all-classes";
+  static const enroll = "/api/student/all-classes";
+  static const enrolledClasses = "/api/student/classes";
+  static const classDetail = "/api/student/classes";
 }
