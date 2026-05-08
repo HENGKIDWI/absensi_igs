@@ -5,12 +5,13 @@ import 'package:http/http.dart' as http;
 import 'package:igs_absensi/DTO/schedule.dart';
 import 'package:igs_absensi/config/api.dart';
 import 'package:igs_absensi/config/auth_storage.dart';
-import 'package:igs_absensi/DTO/class.dart';
+import 'package:igs_absensi/model/class.dart';
 import 'package:igs_absensi/model/faculty.dart';
 import 'package:igs_absensi/model/schedule.dart';
-import 'package:igs_absensi/model/search.dart';
+import 'package:igs_absensi/DTO/search.dart';
 import 'package:igs_absensi/model/study_program.dart';
 import 'package:igs_absensi/model/user.dart';
+import 'package:igs_absensi/screens/class_list/class_list_detail_screen.dart';
 import 'package:igs_absensi/screens/my_class/my_class_detail_screen.dart';
 
 class ApiService {
@@ -345,27 +346,38 @@ class ApiService {
   }
 
   Future<String> enrollCourse(int courseId) async {
-    final token = await AuthStorage.getToken();
+    try {
+      final token = await AuthStorage.getToken();
+      print('ENROLL TOKEN: $token');
 
-    final uri = Uri.parse(
-      '${ApiConfig.baseUrl}${ApiEndpoint.enroll}/$courseId/enroll',
-    );
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}${ApiEndpoint.enroll}/$courseId/enroll',
+      );
+      print('ENROLL URL: $uri');
 
-    final response = await http.post(
-      uri,
-      headers: {
-        'Accept': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-    );
+      final response = await http.post(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
 
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final message = data['message'] as String? ?? 'Terjadi kesalahan';
+      print('ENROLL STATUS: ${response.statusCode}');
+      print('ENROLL BODY: ${response.body}');
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return message;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final message = data['message'] as String? ?? 'Terjadi kesalahan';
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return message;
+      }
+
+      throw EnrollException(message: message, statusCode: response.statusCode);
+    } catch (e) {
+      print('ENROLL ERROR: $e');
+      rethrow;
     }
-    throw Exception(message);
   }
 
   // GET /api/student/classes → daftar kelas yang diikuti student saat ini

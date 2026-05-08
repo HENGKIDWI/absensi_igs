@@ -3,34 +3,63 @@ import 'package:igs_absensi/screens/my_class/my_class.dart';
 import 'package:igs_absensi/screens/qr_scanner_screen.dart';
 import 'package:igs_absensi/screens/home/home_screen.dart';
 import 'package:igs_absensi/screens/profil_screen.dart';
-import 'package:igs_absensi/screens/search_screen.dart';
+import 'package:igs_absensi/screens/class_list/class_list.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class navbar extends StatefulWidget {
+  const navbar({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<navbar> createState() => _navbarState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _navbarState extends State<navbar> {
   late final PersistentTabController _controller;
+  final GlobalKey<MyClassScreenState> _myClassKey = GlobalKey();
+  late final List<CustomNavBarScreen> _screens;
 
   @override
   void initState() {
     super.initState();
     _controller = PersistentTabController(initialIndex: 0);
+    _controller.addListener(_onTabChanged);
+    _screens = [
+      CustomNavBarScreen(screen: const HomeScreen()),
+      CustomNavBarScreen(
+        screen: SearchScreen(onEnrollSuccess: _onEnrollSuccess),
+      ),
+      CustomNavBarScreen(screen: const QrScannerPage()),
+      CustomNavBarScreen(screen: MyClassScreen(key: _myClassKey)),
+      CustomNavBarScreen(screen: const ProfileScreen()),
+    ];
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onTabChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_controller.index == 3) {
+      _myClassKey.currentState?.loadData();
+    }
+  }
+
+  void _onEnrollSuccess() {
+    _myClassKey.currentState?.refreshData();
   }
 
   List<CustomNavBarScreen> _buildScreens() {
     return [
-      CustomNavBarScreen(screen: const HomeScreen()), // index 0 - Dashboard
-      CustomNavBarScreen(screen: const SearchScreen()), // index 1 - Pencarian
+      CustomNavBarScreen(screen: const HomeScreen()),
       CustomNavBarScreen(
-        screen: const QrScannerPage(),
-      ), // index 2 - QR (FAB tengah)
-      CustomNavBarScreen(screen: const MyClassScreen()), // index 3 - My Course
-      CustomNavBarScreen(screen: const ProfileScreen()), // index 4 - Profil
+        screen: SearchScreen(onEnrollSuccess: _onEnrollSuccess),
+      ),
+      CustomNavBarScreen(screen: const QrScannerPage()),
+      CustomNavBarScreen(screen: MyClassScreen(key: _myClassKey)),
+      CustomNavBarScreen(screen: const ProfileScreen()),
     ];
   }
 
@@ -39,16 +68,27 @@ class _HomePageState extends State<HomePage> {
     return PersistentTabView.custom(
       context,
       controller: _controller,
-      screens: _buildScreens(),
+      screens: _screens,
       itemCount: 5,
       backgroundColor: Colors.white,
       handleAndroidBackButtonPress: true,
-      stateManagement: true,
+      stateManagement: false,
       hideNavigationBarWhenKeyboardAppears: true,
       customWidget: _BottomNav(
         selectedIndex: _controller.index,
+        // di navbar.dart
         onItemSelected: (index) {
           setState(() => _controller.index = index);
+
+          if (index == 3) {
+            // ✅ tunggu frame selesai render dulu
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              print(
+                'MY CLASS KEY STATE (post frame): ${_myClassKey.currentState}',
+              );
+              _myClassKey.currentState?.loadData();
+            });
+          }
         },
       ),
     );
@@ -113,29 +153,33 @@ class _BottomNav extends StatelessWidget {
             left: 0,
             right: 0,
             child: Center(
-              child: GestureDetector(
-                onTap: () => onItemSelected(2),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: selectedIndex == 2
-                        ? Colors.blueAccent
-                        : Colors.blueAccent.withOpacity(0.85),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.blueAccent.withOpacity(0.4),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.qr_code_scanner_rounded,
-                    color: Colors.white,
-                    size: selectedIndex == 2 ? 30 : 26,
+              child: SizedBox(
+                width: 60,
+                height: 60,
+                child: GestureDetector(
+                  onTap: () => onItemSelected(2),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: selectedIndex == 2
+                          ? Colors.blueAccent
+                          : Colors.blueAccent.withOpacity(0.85),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blueAccent.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.qr_code_scanner_rounded,
+                      color: Colors.white,
+                      size: selectedIndex == 2 ? 30 : 26,
+                    ),
                   ),
                 ),
               ),
@@ -149,7 +193,10 @@ class _BottomNav extends StatelessWidget {
   Widget _buildItem(int index, IconData icon, String label) {
     final selected = index == selectedIndex;
     return GestureDetector(
-      onTap: () => onItemSelected(index),
+      onTap: () {
+        print('_buildItem TAP: $index');
+        onItemSelected(index);
+      },
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

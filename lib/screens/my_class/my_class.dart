@@ -7,24 +7,40 @@ class MyClassScreen extends StatefulWidget {
   const MyClassScreen({super.key});
 
   @override
-  State<MyClassScreen> createState() => _MyClassScreenState();
+  State<MyClassScreen> createState() => MyClassScreenState();
 }
 
-class _MyClassScreenState extends State<MyClassScreen> {
+class MyClassScreenState extends State<MyClassScreen> {
   final ApiService _apiService = ApiService();
 
   List<ClassModel> _courses = [];
   List<ClassModel> _filtered = [];
-  bool _isLoading = true;
+  bool _isLoading = false;
   String? _error;
 
   final TextEditingController _searchController = TextEditingController();
 
+  // ✅ Sesudah
+  bool _hasLoaded = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchEnrolledClasses();
+    // tidak fetch di sini
     _searchController.addListener(_onSearchChanged);
+  }
+
+  /// Dipanggil pertama kali saat tab dibuka
+  void loadData() {
+    if (_hasLoaded) return;
+    print('LOADDATA CALLED');
+    _fetchEnrolledClasses();
+  }
+
+  /// Dipanggil setelah enroll berhasil
+  void refreshData() {
+    _hasLoaded = false;
+    _fetchEnrolledClasses();
   }
 
   @override
@@ -51,7 +67,7 @@ class _MyClassScreenState extends State<MyClassScreen> {
 
   Future<void> _fetchEnrolledClasses() async {
     setState(() {
-      _isLoading = true;
+      _isLoading = true; // ✅ hapus _hasLoaded = true dari sini
       _error = null;
     });
 
@@ -62,12 +78,15 @@ class _MyClassScreenState extends State<MyClassScreen> {
         _courses = result;
         _filtered = result;
         _isLoading = false;
+        _hasLoaded = true; // ✅ pindah ke sini, hanya set true kalau berhasil
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = 'Gagal memuat kelas. Coba lagi.';
         _isLoading = false;
+        _hasLoaded =
+            false; // ✅ kalau gagal, biarkan bisa retry lewat loadData()
       });
     }
   }
@@ -155,6 +174,9 @@ class _MyClassScreenState extends State<MyClassScreen> {
   }
 
   Widget _buildBody() {
+    if (!_hasLoaded && !_isLoading) {
+      return const SizedBox.shrink();
+    }
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFF0C447C)),

@@ -153,11 +153,12 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       });
 
       _showSnackbar(message, isError: false);
+
+      Navigator.pop(context, true);
     } on EnrollException catch (e) {
       if (!mounted) return;
       setState(() => _isEnrolling = false);
 
-      // 409 sudah terdaftar → anggap sudah enroll
       if (e.statusCode == 409 && e.message.contains('sudah terdaftar')) {
         setState(() => _isEnrolled = true);
       }

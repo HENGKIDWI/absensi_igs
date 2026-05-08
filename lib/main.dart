@@ -4,8 +4,6 @@ import 'package:igs_absensi/screens/navbar.dart';
 import 'package:igs_absensi/screens/auth/login_screen.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:igs_absensi/screens/my_class/my_class.dart'
-    show AppRouteObserver;
 
 void main() {
   runApp(
@@ -25,7 +23,6 @@ class MyApp extends StatelessWidget {
       // ← tambahkan ini
       controller: EventController(),
       child: MaterialApp(
-        navigatorObservers: [AppRouteObserver.instance],
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
@@ -39,7 +36,7 @@ class MyApp extends StatelessWidget {
             }
 
             if (auth.user != null && auth.isVerified) {
-              return const HomePage();
+              return const navbar();
             }
 
             return const LoginPage();

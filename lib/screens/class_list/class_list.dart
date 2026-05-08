@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:igs_absensi/model/class.dart';
-import 'package:igs_absensi/screens/class_detail_screen.dart';
+import 'package:igs_absensi/screens/class_list/class_list_detail_screen.dart';
 import 'package:igs_absensi/services/api_service.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final VoidCallback? onEnrollSuccess;
+  const SearchScreen({super.key, this.onEnrollSuccess});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -104,13 +105,20 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _openDetail(ClassModel classModel) {
-    Navigator.push(
+  Future<void> _openDetail(ClassModel classModel) async {
+    final enrolled = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => ClassDetailScreen(classModel: classModel),
       ),
     );
+
+    if (enrolled == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Berhasil bergabung ke kelas!')),
+      );
+      widget.onEnrollSuccess?.call();
+    }
   }
 
   @override
