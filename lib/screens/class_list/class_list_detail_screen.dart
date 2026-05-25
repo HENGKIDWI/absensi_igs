@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:igs_absensi/model/class.dart';
+import 'package:igs_absensi/screens/my_class/my_class_detail_screen.dart';
 import 'package:igs_absensi/services/api_service.dart';
 
 // ── Custom exception untuk enroll ────────────────────────
@@ -155,6 +156,13 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       _showSnackbar(message, isError: false);
 
       Navigator.pop(context, true);
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MyClassDetailScreen(classModel: widget.classModel),
+        ),
+      );
     } on EnrollException catch (e) {
       if (!mounted) return;
       setState(() => _isEnrolling = false);

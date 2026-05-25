@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:igs_absensi/screens/auth/login_screen.dart';
+import 'package:igs_absensi/screens/profil/edit_profil_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:igs_absensi/providers/auth_provider.dart';
 import 'package:igs_absensi/services/api_service.dart';
@@ -33,6 +34,16 @@ class ProfileScreen extends StatelessWidget {
               email: email,
               initials: initials,
               isVerified: isVerified,
+              onEditTap: () =>
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const EditProfileScreen(),
+                    ),
+                  ).then((_) {
+                    // refresh profil setelah kembali dari edit
+                    context.read<AuthProvider>().fetchProfile();
+                  }),
             ),
           ),
 
@@ -103,18 +114,19 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-// ── Header ────────────────────────────────────────────────
 class _ProfileHeader extends StatelessWidget {
   final String name;
   final String email;
   final String initials;
   final bool isVerified;
+  final VoidCallback onEditTap;
 
   const _ProfileHeader({
     required this.name,
     required this.email,
     required this.initials,
     required this.isVerified,
+    required this.onEditTap,
   });
 
   @override
@@ -140,6 +152,31 @@ class _ProfileHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: onEditTap,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  child: const Icon(
+                    Icons.edit_outlined,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+
           // Avatar
           Container(
             width: 80,
@@ -164,9 +201,9 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ),
           ),
+
           const SizedBox(height: 16),
 
-          // Nama
           Text(
             name,
             style: const TextStyle(
@@ -177,9 +214,9 @@ class _ProfileHeader extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
+
           const SizedBox(height: 4),
 
-          // Email
           Text(
             email,
             style: TextStyle(
@@ -188,9 +225,9 @@ class _ProfileHeader extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
+
           const SizedBox(height: 12),
 
-          // Badge verifikasi
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(

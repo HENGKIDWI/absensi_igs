@@ -7,7 +7,6 @@ import 'package:igs_absensi/config/api.dart';
 import 'package:igs_absensi/config/auth_storage.dart';
 import 'package:igs_absensi/model/class.dart';
 import 'package:igs_absensi/model/faculty.dart';
-import 'package:igs_absensi/model/schedule.dart';
 import 'package:igs_absensi/DTO/search.dart';
 import 'package:igs_absensi/model/study_program.dart';
 import 'package:igs_absensi/model/user.dart';
@@ -76,6 +75,9 @@ class ApiService {
     );
 
     final data = jsonDecode(response.body);
+
+    debugPrint('REGISTER STATUS: ${response.statusCode}');
+    debugPrint('REGISTER BODY: ${response.body}');
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       return data;
@@ -410,9 +412,13 @@ class ApiService {
   Future<ClassDetailData> getClassDetail(int courseId) async {
     final token = await AuthStorage.getToken();
 
+    // ✅ Pakai method, bukan property
     final uri = Uri.parse(
-      '${ApiConfig.baseUrl}${ApiEndpoint.classDetail}/$courseId',
+      '${ApiConfig.baseUrl}${ApiEndpoint.classDetail(courseId)}',
     );
+
+    debugPrint('=== GET CLASS DETAIL ===');
+    debugPrint('URL: $uri');
 
     final response = await http.get(
       uri,
@@ -422,11 +428,13 @@ class ApiService {
       },
     );
 
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+
     final body = jsonDecode(response.body) as Map<String, dynamic>;
 
     if (response.statusCode == 200) {
       final data = body['data'] as Map<String, dynamic>;
-
       final courseJson = data['course'] as Map<String, dynamic>;
       final meetingsJson = data['meetings'] as List<dynamic>? ?? [];
 
@@ -478,5 +486,108 @@ class ApiService {
   String? _formatTime(String? raw) {
     if (raw == null) return null;
     return raw.length >= 5 ? raw.substring(0, 5) : raw;
+  }
+
+  // Ambil profil
+  Future<User> getProfile() async {
+    final token = await AuthStorage.getToken();
+    final uri = Uri.parse('${ApiConfig.baseUrl}${ApiEndpoint.profile}');
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200) {
+      return User.fromJson(data['data'] as Map<String, dynamic>);
+    }
+    throw Exception(data['message'] ?? 'Gagal mengambil profil');
+  }
+
+  // Update profil
+  Future<User> updateProfile({
+    required String name,
+    required String email,
+    String? gender,
+    String? dateOfBirth,
+    String? address,
+    String? currentPassword,
+    String? password,
+    String? passwordConfirmation,
+  }) async {
+    final token = await AuthStorage.getToken();
+    final uri = Uri.parse('${ApiConfig.baseUrl}${ApiEndpoint.profile}');
+
+    final body = {
+      'name': name,
+      'email': email,
+      if (address != null) 'address': address,
+      if (gender != null) 'gender': gender,
+      if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
+      if (currentPassword != null) 'current_password': currentPassword,
+      if (password != null) 'password': password,
+      if (passwordConfirmation != null)
+        'password_confirmation': passwordConfirmation,
+    };
+
+    final response = await http.put(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200) {
+      return User.fromJson(data['data'] as Map<String, dynamic>);
+    }
+
+    // Handle validasi error
+    if (response.statusCode == 422) {
+      final errors = data['errors'] as Map<String, dynamic>?;
+      final firstError = errors?.values.first;
+      final message = firstError is List ? firstError.first : 'Validasi gagal';
+      throw Exception(message);
+    }
+
+    throw Exception(data['message'] ?? 'Gagal memperbarui profil');
+  }
+
+  /// POST /student/scan/{token}
+  Future<int> scanQr(String token) async {
+    final authToken = await AuthStorage.getToken();
+
+    // ✅ Pakai method
+    final uri = Uri.parse('${ApiConfig.baseUrl}${ApiEndpoint.scanQr(token)}');
+
+    debugPrint('=== SCAN QR ===');
+    debugPrint('URL: $uri');
+
+    final response = await http.post(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (authToken != null) 'Authorization': 'Bearer $authToken',
+      },
+    );
+
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode == 200) {
+      final session = data['data']['session'] as Map<String, dynamic>;
+      return session['course_id'] as int;
+    }
+
+    throw Exception(data['message'] ?? 'Scan gagal');
   }
 }

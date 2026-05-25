@@ -169,4 +169,39 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('token');
     await prefs.remove('user');
   }
+
+  Future<void> fetchProfile() async {
+    final fetched = await ApiService().getProfile();
+    user = fetched; // ✅ update this.user
+    notifyListeners();
+  }
+
+  Future<String> updateProfile({
+    required String name,
+    required String email,
+    String? gender,
+    String? dateOfBirth,
+    String? address,
+    String? currentPassword,
+    String? password,
+    String? passwordConfirmation,
+  }) async {
+    final updated = await ApiService().updateProfile(
+      name: name,
+      email: email,
+      gender: gender,
+      dateOfBirth: dateOfBirth,
+      address: address,
+      currentPassword: currentPassword,
+      password: password,
+      passwordConfirmation: passwordConfirmation,
+    );
+    user = updated; // ✅ update this.user
+    notifyListeners();
+
+    if (updated.pendingEmail != null) {
+      return 'Profil diperbarui. Silakan cek email untuk verifikasi ulang.';
+    }
+    return 'Profil berhasil diperbarui.';
+  }
 }

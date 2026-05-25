@@ -114,9 +114,6 @@ class _SearchScreenState extends State<SearchScreen> {
     );
 
     if (enrolled == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Berhasil bergabung ke kelas!')),
-      );
       widget.onEnrollSuccess?.call();
     }
   }

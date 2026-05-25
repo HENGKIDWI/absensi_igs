@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:igs_absensi/screens/my_class/my_class.dart';
 import 'package:igs_absensi/screens/qr_scanner_screen.dart';
 import 'package:igs_absensi/screens/home/home_screen.dart';
-import 'package:igs_absensi/screens/profil_screen.dart';
+import 'package:igs_absensi/screens/profil/profil_screen.dart';
 import 'package:igs_absensi/screens/class_list/class_list.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 

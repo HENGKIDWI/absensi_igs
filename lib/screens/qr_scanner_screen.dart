@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:igs_absensi/screens/my_class/my_class_detail_screen.dart';
+import 'package:igs_absensi/services/api_service.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class QrScannerPage extends StatefulWidget {
@@ -42,24 +44,109 @@ class _QrScannerPageState extends State<QrScannerPage>
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
+  void _onDetect(BarcodeCapture capture) async {
     if (_hasScanned) return;
 
     final barcode = capture.barcodes.firstOrNull;
     if (barcode == null || barcode.rawValue == null) return;
 
+    final raw = barcode.rawValue!;
+    final token = _extractToken(raw);
+
+    if (token == null) {
+      _showError('QR tidak valid');
+      return;
+    }
+
     setState(() => _hasScanned = true);
     HapticFeedback.mediumImpact();
     _controller.stop();
 
-    final scannedValue = barcode.rawValue!;
+    if (!mounted) return;
 
-    _showResultBottomSheet(scannedValue);
+    // ✅ Simpan navigator sebelum async gap
+    final navigator = Navigator.of(context);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      builder: (_) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
+    );
+
+    try {
+      final api = ApiService();
+      final courseId = await api.scanQr(token);
+      final detail = await api.getClassDetail(courseId);
+
+      // ✅ Pakai navigator yang sudah disimpan, tidak perlu cek mounted
+      navigator.pop(); // tutup loading
+      navigator.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => MyClassDetailScreen(classModel: detail.course),
+        ),
+        (route) => route.isFirst,
+      );
+    } catch (e) {
+      navigator.pop(); // tutup loading
+      final message = e.toString().replaceFirst('Exception: ', '');
+      _showError(message);
+      _resetScanner();
+    }
+  }
+
+  /// Ekstrak token 8 karakter dari URL atau raw string
+  /// contoh: "http://0.0.0.0:8000/api/student/scan/eyCBWe9e" → "eyCBWe9e"
+  String? _extractToken(String raw) {
+    try {
+      final uri = Uri.parse(raw);
+      final segments = uri.pathSegments;
+      if (segments.isNotEmpty) {
+        final last = segments.last;
+        debugPrint(
+          'EXTRACTED SEGMENT: "$last" length=${last.length}',
+        ); // ← tambah ini
+        if (last.length == 8 && RegExp(r'^[A-Za-z0-9]+$').hasMatch(last)) {
+          return last;
+        }
+      }
+    } catch (_) {}
+
+    debugPrint('FALLBACK RAW: "$raw" length=${raw.length}');
+    if (raw.length == 8 && RegExp(r'^[A-Za-z0-9]+$').hasMatch(raw)) {
+      return raw;
+    }
+
+    return null;
   }
 
   void _resetScanner() {
     setState(() => _hasScanned = false);
     _controller.start();
+  }
+
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
+            SizedBox(width: 8),
+            Text('Scan Gagal', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _toggleFlash() async {
