@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:igs_absensi/DTO/attendance_summary.dart';
 import 'package:igs_absensi/DTO/schedule.dart';
 import 'package:igs_absensi/config/api.dart';
 import 'package:igs_absensi/config/auth_storage.dart';
@@ -353,7 +354,7 @@ class ApiService {
       print('ENROLL TOKEN: $token');
 
       final uri = Uri.parse(
-        '${ApiConfig.baseUrl}${ApiEndpoint.enroll}/$courseId/enroll',
+        '${ApiConfig.baseUrl}${ApiEndpoint.enroll(courseId)}',
       );
       print('ENROLL URL: $uri');
 
@@ -589,5 +590,29 @@ class ApiService {
     }
 
     throw Exception(data['message'] ?? 'Scan gagal');
+  }
+
+  Future<AttendanceSummaryResponse> getAttendanceSummary() async {
+    final token = await AuthStorage.getToken();
+
+    final uri = Uri.parse(
+      '${ApiConfig.baseUrl}${ApiEndpoint.attendanceSummary}',
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode == 200) {
+      return AttendanceSummaryResponse.fromJson(data);
+    }
+
+    throw Exception(data['message'] ?? 'Gagal mengambil ringkasan absensi');
   }
 }

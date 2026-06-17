@@ -3,7 +3,7 @@ class ApiConfig {
   // static const baseUrl = "http://10.0.2.2:8000";
 
   // Real device / local network
-  static const baseUrl = "http://192.168.75.154:8000";
+  static const baseUrl = "http://192.168.1.17:8000";
 }
 
 class ApiEndpoint {
@@ -32,6 +32,7 @@ class ApiEndpoint {
   static const allClasses = "/api/student/all-classes";
   static const enrolledClasses = "/api/student/classes";
   static const profile = "/api/student/profile";
+  static const attendanceSummary = "/api/student/attendance-summary";
 
   // Dynamic endpoint helper
   static String classDetail(int id) => "/api/student/classes/$id";

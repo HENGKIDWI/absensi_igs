@@ -32,25 +32,25 @@ final _dummyMeetings = [
     number: 1,
     date: '3 Feb 2025',
     topic: 'Pengenalan Mata Kuliah',
-    status: MeetingStatus.selesai,
+    status: MeetingStatus.belumMulai,
   ),
   MeetingItem(
     number: 2,
     date: '10 Feb 2025',
     topic: 'Dasar-dasar Teori',
-    status: MeetingStatus.selesai,
+    status: MeetingStatus.belumMulai,
   ),
   MeetingItem(
     number: 3,
     date: '17 Feb 2025',
     topic: 'Studi Kasus I',
-    status: MeetingStatus.selesai,
+    status: MeetingStatus.belumMulai,
   ),
   MeetingItem(
     number: 4,
     date: '24 Feb 2025',
     topic: 'Diskusi & Latihan',
-    status: MeetingStatus.berlangsung,
+    status: MeetingStatus.belumMulai,
   ),
   MeetingItem(
     number: 5,
@@ -553,26 +553,26 @@ class _MeetingRow extends StatelessWidget {
                             color: Colors.black87,
                           ),
                         ),
-                        if (meeting.date.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                size: 11,
-                                color: Colors.grey.shade400,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                meeting.date,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                        // if (meeting.date.isNotEmpty) ...[
+                        //   const SizedBox(height: 4),
+                        //   Row(
+                        //     children: [
+                        //       Icon(
+                        //         Icons.calendar_today_outlined,
+                        //         size: 11,
+                        //         color: Colors.grey.shade400,
+                        //       ),
+                        //       const SizedBox(width: 4),
+                        //       Text(
+                        //         meeting.date,
+                        //         style: TextStyle(
+                        //           fontSize: 11,
+                        //           color: Colors.grey.shade500,
+                        //         ),
+                        //       ),
+                        //     ],
+                        //   ),
+                        // ],
                       ],
                     ),
                   ),
