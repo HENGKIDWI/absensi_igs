@@ -1,12 +1,12 @@
 import 'package:igs_absensi/model/schedule.dart';
 
 class ScheduleResponse {
-  final List<ScheduleModel> todayCourses;
-  final List<ScheduleModel> tomorrowCourses;
+  final List<CourseSchedule> todayCourses;
+  final List<CourseSchedule> tomorrowCourses;
   final String today;
   final String tomorrow;
 
-  const ScheduleResponse({
+  ScheduleResponse({
     required this.todayCourses,
     required this.tomorrowCourses,
     required this.today,
@@ -15,14 +15,16 @@ class ScheduleResponse {
 
   factory ScheduleResponse.fromJson(Map<String, dynamic> json) {
     return ScheduleResponse(
-      todayCourses: (json['todayCourses'] as List<dynamic>? ?? [])
-          .map((e) => ScheduleModel.fromJson(e as Map<String, dynamic>))
+      todayCourses: (json['todayCourses'] as List)
+          .map((e) => CourseSchedule.fromJson(e))
           .toList(),
-      tomorrowCourses: (json['tomorrowCourses'] as List<dynamic>? ?? [])
-          .map((e) => ScheduleModel.fromJson(e as Map<String, dynamic>))
+
+      tomorrowCourses: (json['tomorrowCourses'] as List)
+          .map((e) => CourseSchedule.fromJson(e))
           .toList(),
-      today: json['today'] as String? ?? '',
-      tomorrow: json['tomorrow'] as String? ?? '',
+
+      today: json['today'] ?? '',
+      tomorrow: json['tomorrow'] ?? '',
     );
   }
 }

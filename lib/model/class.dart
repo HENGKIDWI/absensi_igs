@@ -9,6 +9,7 @@ class ClassModel {
   final String? studyProgram;
   final String? semester;
   final String? lecturerName;
+  final int? sks;
 
   const ClassModel({
     required this.id,
@@ -19,6 +20,7 @@ class ClassModel {
     this.studyProgram,
     this.semester,
     this.lecturerName,
+    this.sks,
   });
 
   factory ClassModel.fromJson(Map<String, dynamic> json) => ClassModel(
@@ -30,5 +32,6 @@ class ClassModel {
     studyProgram: json['study_program'],
     semester: json['semester'],
     lecturerName: json['lecturer_name'],
+    sks: json['sks'],
   );
 }

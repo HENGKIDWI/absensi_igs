@@ -1,3 +1,6 @@
+// lib/screens/home/home_screen.dart
+
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -9,24 +12,66 @@ import 'package:igs_absensi/services/api_service.dart';
 import 'package:igs_absensi/model/schedule.dart';
 import 'package:igs_absensi/screens/home/kalender_screen.dart';
 
-// ── Enum status kehadiran ────────────────────────────────
-enum _AttendanceStatus { belumMulai, hadir, tidakHadir, selesai }
-
-_AttendanceStatus _parseStatus(String? raw) {
-  switch (raw) {
-    case 'hadir':
-      return _AttendanceStatus.hadir;
-    case 'tidak_hadir':
-    case 'tidakHadir':
-      return _AttendanceStatus.tidakHadir;
-    case 'selesai':
-      return _AttendanceStatus.selesai;
-    default:
-      return _AttendanceStatus.belumMulai;
-  }
+// ════════════════════════════════════════════════════════
+// Enum status kehadiran (real-time aware)
+// ════════════════════════════════════════════════════════
+enum _AttendanceStatus {
+  belumMulai,
+  sedangBerlangsung,
+  hadir,
+  tidakHadir,
+  izin,
+  selesai,
 }
 
-// ── Warna tema ───────────────────────────────────────────
+// Hitung status real-time berdasarkan waktu + data attendance dari DB
+_AttendanceStatus _resolveStatus({
+  required String? rawStatus,
+  required String startTime, // "HH:mm:ss"
+  required String endTime,
+  required bool isToday,
+}) {
+  // Jika sudah ada catatan kehadiran dari DB → pakai itu
+  if (rawStatus != null && rawStatus.isNotEmpty) {
+    switch (rawStatus) {
+      case 'hadir':
+        return _AttendanceStatus.hadir;
+      case 'alpha':
+      case 'tidak_hadir':
+      case 'tidakHadir':
+        return _AttendanceStatus.tidakHadir;
+      case 'izin':
+        return _AttendanceStatus.izin;
+      case 'selesai':
+        return _AttendanceStatus.selesai;
+    }
+  }
+
+  // Untuk jadwal besok → selalu belum mulai
+  if (!isToday) return _AttendanceStatus.belumMulai;
+
+  // Untuk jadwal hari ini → hitung dari waktu sekarang
+  final now = TimeOfDay.now();
+  final start = _parseTimeOfDay(startTime);
+  final end = _parseTimeOfDay(endTime);
+
+  final nowMin = now.hour * 60 + now.minute;
+  final startMin = start.hour * 60 + start.minute;
+  final endMin = end.hour * 60 + end.minute;
+
+  if (nowMin < startMin) return _AttendanceStatus.belumMulai;
+  if (nowMin <= endMin) return _AttendanceStatus.sedangBerlangsung;
+  return _AttendanceStatus.selesai;
+}
+
+TimeOfDay _parseTimeOfDay(String t) {
+  final parts = t.split(':');
+  return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+}
+
+// ════════════════════════════════════════════════════════
+// Warna tema
+// ════════════════════════════════════════════════════════
 const _primary = Color(0xFF0C447C);
 const _primaryLight = Color(0xFF1565A0);
 const _accent = Color(0xFFEEF6FF);
@@ -38,8 +83,9 @@ const _red = Color(0xFFEA4335);
 const _redLight = Color(0xFFFCE8E6);
 const _amber = Color(0xFFFB8C00);
 const _amberLight = Color(0xFFFFF3E0);
+const _teal = Color(0xFF00897B);
+const _tealLight = Color(0xFFE0F2F1);
 const _surface = Color(0xFFFFFFFF);
-const _bg = Color(0xFFF2F7FC);
 
 // ════════════════════════════════════════════════════════
 // HomeScreen
@@ -63,7 +109,8 @@ class _HomeScreenState extends State<HomeScreen>
   String? _scheduleError;
   String? _attendanceError;
 
-  bool _akanDatangExpanded = false;
+  // Timer untuk auto-update status real-time tiap 1 menit
+  Timer? _realtimeTimer;
 
   late AnimationController _barAnimController;
   late Animation<double> _barAnim;
@@ -71,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+
     _barAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -79,15 +127,23 @@ class _HomeScreenState extends State<HomeScreen>
       parent: _barAnimController,
       curve: Curves.easeOutCubic,
     );
+
     _fetchAll();
+
+    // Rebuild tiap menit agar status berubah otomatis tanpa hit API
+    _realtimeTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _realtimeTimer?.cancel();
     _barAnimController.dispose();
     super.dispose();
   }
 
+  // ── Fetch ────────────────────────────────────────────
   Future<void> _fetchAll() async {
     await Future.wait([_fetchSchedule(), _fetchAttendanceSummary()]);
   }
@@ -123,7 +179,6 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final result = await _apiService.getAttendanceSummary();
       if (!mounted) return;
-      // Reset & replay animasi bar setiap data baru masuk
       _barAnimController.forward(from: 0);
       setState(() {
         _attendanceSummary = result;
@@ -138,6 +193,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  // ── Helpers ──────────────────────────────────────────
   String _capitalizeFirst(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
@@ -149,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen>
       ? _capitalizeFirst(_scheduleResponse!.tomorrow)
       : 'Besok';
 
+  // ── Build ─────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
@@ -161,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen>
         .join();
 
     return Scaffold(
-      backgroundColor: Color(0xFFABE4FF),
+      backgroundColor: const Color(0xFFABE4FF),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _fetchAll,
@@ -170,13 +227,12 @@ class _HomeScreenState extends State<HomeScreen>
             padding: EdgeInsets.zero,
             children: [
               _Header(name: name, initials: initials),
-
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Grafik kehadiran ──
+                    // Grafik kehadiran
                     _AttendanceChart(
                       animation: _barAnim,
                       isLoading: _isLoadingAttendance,
@@ -186,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     const SizedBox(height: 24),
 
-                    // ── Jadwal Hari Ini ──
+                    // Jadwal Hari Ini
                     _SectionHeader(
                       label: _todayLabel,
                       icon: Icons.today_rounded,
@@ -201,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     const SizedBox(height: 20),
 
-                    // ── Jadwal Besok ──
+                    // Jadwal Besok
                     _SectionHeader(
                       label: _tomorrowLabel,
                       icon: Icons.calendar_today_rounded,
@@ -215,43 +271,6 @@ class _HomeScreenState extends State<HomeScreen>
                       isToday: false,
                     ),
                     const SizedBox(height: 20),
-
-                    // // ── Akan Datang ──
-                    // _AkanDatangHeader(
-                    //   expanded: _akanDatangExpanded,
-                    //   onTap: () => setState(
-                    //     () => _akanDatangExpanded = !_akanDatangExpanded,
-                    //   ),
-                    // ),
-
-                    // AnimatedCrossFade(
-                    //   duration: const Duration(milliseconds: 250),
-                    //   crossFadeState: _akanDatangExpanded
-                    //       ? CrossFadeState.showFirst
-                    //       : CrossFadeState.showSecond,
-                    //   firstChild: Column(
-                    //     children: [
-                    //       _ScheduleCard(
-                    //         name: 'Pemrograman Web',
-                    //         room: 'Lab B2',
-                    //         startTime: '08:00',
-                    //         endTime: '09:40',
-                    //         status: null,
-                    //         isToday: false,
-                    //       ),
-                    //       _ScheduleCard(
-                    //         name: 'Jaringan Komputer',
-                    //         room: 'Lab C1',
-                    //         startTime: '10:00',
-                    //         endTime: '11:40',
-                    //         status: 'selesai',
-                    //         isToday: false,
-                    //       ),
-                    //     ],
-                    //   ),
-                    //   secondChild: const SizedBox.shrink(),
-                    // ),
-                    const SizedBox(height: 16),
 
                     _FullScheduleButton(
                       onTap: () => Navigator.push(
@@ -273,29 +292,34 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildScheduleSection({
-    required List<ScheduleModel>? items,
+    required List<CourseSchedule>? items,
     required bool isLoading,
     required String? error,
     required bool isToday,
   }) {
     if (isLoading) return const _LoadingCard();
-    if (error != null)
+    if (error != null) {
       return _ErrorCard(message: error, onRetry: _fetchSchedule);
+    }
     if (items == null || items.isEmpty) return const _EmptyCard();
 
     return Column(
-      children: items
-          .map(
-            (e) => _ScheduleCard(
-              name: e.name,
-              room: e.room,
-              startTime: e.formattedStartTime,
-              endTime: e.formattedEndTime,
-              status: e.status,
-              isToday: isToday,
-            ),
-          )
-          .toList(),
+      children: items.map((e) {
+        // Hitung status real-time setiap build (diperbarui Timer tiap 1 menit)
+        final status = _resolveStatus(
+          rawStatus: e.status,
+          startTime: e.startTime,
+          endTime: e.endTime,
+          isToday: isToday,
+        );
+        return _ScheduleCard(
+          name: e.name,
+          startTime: e.startTime.substring(0, 5),
+          endTime: e.endTime.substring(0, 5),
+          status: status,
+          isToday: isToday,
+        );
+      }).toList(),
     );
   }
 }
@@ -407,7 +431,7 @@ class _Header extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════
-// _AttendanceChart  — sekarang terima data dari API
+// _AttendanceChart
 // ════════════════════════════════════════════════════════
 class _AttendanceChart extends StatelessWidget {
   final Animation<double> animation;
@@ -447,7 +471,7 @@ class _AttendanceChart extends StatelessWidget {
   }
 }
 
-// ── Skeleton saat loading ────────────────────────────────
+// ── Skeleton ─────────────────────────────────────────────
 class _ChartSkeleton extends StatelessWidget {
   const _ChartSkeleton();
 
@@ -511,7 +535,7 @@ class _Shimmer extends StatelessWidget {
   }
 }
 
-// ── Error state ──────────────────────────────────────────
+// ── Error ─────────────────────────────────────────────────
 class _ChartError extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
@@ -550,7 +574,7 @@ class _ChartError extends StatelessWidget {
   }
 }
 
-// ── Konten utama grafik ──────────────────────────────────
+// ── Konten chart ──────────────────────────────────────────
 class _ChartContent extends StatelessWidget {
   final Animation<double> animation;
   final AttendanceSummaryResponse data;
@@ -560,7 +584,6 @@ class _ChartContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = data.summary;
     final pct = s.total == 0 ? 0 : ((s.hadir / s.total) * 100).round();
-
     final pctColor = pct >= 80
         ? _green
         : pct >= 60
@@ -570,7 +593,6 @@ class _ChartContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Row(
@@ -603,10 +625,7 @@ class _ChartContent extends StatelessWidget {
             ],
           ),
         ),
-
         const SizedBox(height: 14),
-
-        // Chips ringkasan
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
@@ -640,10 +659,7 @@ class _ChartContent extends StatelessWidget {
             ],
           ),
         ),
-
         const SizedBox(height: 16),
-
-        // Bar chart
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: AnimatedBuilder(
@@ -659,10 +675,7 @@ class _ChartContent extends StatelessWidget {
             ),
           ),
         ),
-
         const SizedBox(height: 10),
-
-        // Legend
         const Padding(
           padding: EdgeInsets.only(bottom: 16),
           child: Row(
@@ -681,7 +694,7 @@ class _ChartContent extends StatelessWidget {
   }
 }
 
-// ── Donut mini ───────────────────────────────────────────
+// ── Donut ─────────────────────────────────────────────────
 class _MiniDonut extends StatelessWidget {
   final int pct;
   final Color color;
@@ -751,7 +764,6 @@ class _DonutPainter extends CustomPainter {
         ..strokeWidth = sw
         ..strokeCap = StrokeCap.round,
     );
-
     canvas.drawArc(
       rect,
       -math.pi / 2,
@@ -769,7 +781,7 @@ class _DonutPainter extends CustomPainter {
   bool shouldRepaint(_DonutPainter old) => old.pct != pct || old.color != color;
 }
 
-// ── Bar chart item ───────────────────────────────────────
+// ── Bar chart item ────────────────────────────────────────
 String get _todayShort {
   const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
   return days[(DateTime.now().weekday - 1) % 7];
@@ -872,9 +884,8 @@ class _Bar extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════
-// Section / Schedule widgets (tidak berubah dari versi sebelumnya)
+// _SectionHeader
 // ════════════════════════════════════════════════════════
-
 class _SectionHeader extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -935,27 +946,89 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+// ════════════════════════════════════════════════════════
+// _ScheduleCard  — pakai enum _AttendanceStatus langsung
+// ════════════════════════════════════════════════════════
 class _ScheduleCard extends StatelessWidget {
   final String name;
-  final String? room;
   final String startTime;
-  final String? endTime;
-  final String? status;
+  final String endTime;
+  final _AttendanceStatus status;
   final bool isToday;
 
   const _ScheduleCard({
     required this.name,
-    this.room,
     required this.startTime,
-    this.endTime,
-    this.status,
+    required this.endTime,
+    required this.status,
     required this.isToday,
   });
 
+  ({
+    String label,
+    Color bgColor,
+    Color textColor,
+    Color stripColor,
+    IconData icon,
+  })
+  get _cfg {
+    switch (status) {
+      case _AttendanceStatus.hadir:
+        return (
+          label: 'Hadir',
+          bgColor: _greenLight,
+          textColor: const Color(0xFF1B5E20),
+          stripColor: _green,
+          icon: Icons.check_circle_rounded,
+        );
+      case _AttendanceStatus.tidakHadir:
+        return (
+          label: 'Tidak Hadir',
+          bgColor: _redLight,
+          textColor: const Color(0xFFB71C1C),
+          stripColor: _red,
+          icon: Icons.cancel_rounded,
+        );
+      case _AttendanceStatus.izin:
+        return (
+          label: 'Izin',
+          bgColor: _blueLight,
+          textColor: const Color(0xFF0D47A1),
+          stripColor: _blue,
+          icon: Icons.info_rounded,
+        );
+      case _AttendanceStatus.sedangBerlangsung:
+        return (
+          label: 'Sedang Berlangsung',
+          bgColor: _tealLight,
+          textColor: const Color(0xFF004D40),
+          stripColor: _teal,
+          icon: Icons.radio_button_checked_rounded,
+        );
+      case _AttendanceStatus.selesai:
+        return (
+          label: 'Selesai',
+          bgColor: const Color(0xFFF0F0F0),
+          textColor: const Color(0xFF616161),
+          stripColor: Colors.grey,
+          icon: Icons.done_all_rounded,
+        );
+      case _AttendanceStatus.belumMulai:
+        return (
+          label: 'Belum Mulai',
+          bgColor: _amberLight,
+          textColor: const Color(0xFFE65100),
+          stripColor: _amber,
+          icon: Icons.schedule_rounded,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final st = _parseStatus(status);
-    final cfg = _statusConfig(st);
+    final cfg = _cfg;
+    // Pulse animation khusus untuk "Sedang Berlangsung"
+    final isLive = status == _AttendanceStatus.sedangBerlangsung;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -964,8 +1037,10 @@ class _ScheduleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
+            color: isLive
+                ? _teal.withOpacity(0.15)
+                : Colors.black.withOpacity(0.05),
+            blurRadius: isLive ? 12 : 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -973,6 +1048,7 @@ class _ScheduleCard extends StatelessWidget {
       child: IntrinsicHeight(
         child: Row(
           children: [
+            // Strip kiri berwarna
             Container(
               width: 4,
               decoration: BoxDecoration(
@@ -992,6 +1068,7 @@ class _ScheduleCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Info kiri
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1004,27 +1081,8 @@ class _ScheduleCard extends StatelessWidget {
                               color: Colors.black87,
                             ),
                           ),
-                          if (room != null && room!.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on_outlined,
-                                  size: 12,
-                                  color: Colors.grey.shade400,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  room!,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
                           const SizedBox(height: 8),
+                          // Badge status
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 9,
@@ -1037,7 +1095,15 @@ class _ScheduleCard extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(cfg.icon, size: 11, color: cfg.textColor),
+                                // Dot berkedip untuk live
+                                if (isLive)
+                                  _PulseDot(color: cfg.stripColor)
+                                else
+                                  Icon(
+                                    cfg.icon,
+                                    size: 11,
+                                    color: cfg.textColor,
+                                  ),
                                 const SizedBox(width: 4),
                                 Text(
                                   cfg.label,
@@ -1053,27 +1119,26 @@ class _ScheduleCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                    // Waktu kanan
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
                           startTime,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: Colors.black87,
+                            color: isLive ? _teal : Colors.black87,
                           ),
                         ),
-                        if (endTime != null && endTime!.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            endTime!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade400,
-                            ),
+                        const SizedBox(height: 2),
+                        Text(
+                          endTime,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade400,
                           ),
-                        ],
+                        ),
                       ],
                     ),
                   ],
@@ -1085,52 +1150,57 @@ class _ScheduleCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  ({
-    String label,
-    Color bgColor,
-    Color textColor,
-    Color stripColor,
-    IconData icon,
-  })
-  _statusConfig(_AttendanceStatus s) {
-    switch (s) {
-      case _AttendanceStatus.hadir:
-        return (
-          label: 'Hadir',
-          bgColor: _greenLight,
-          textColor: const Color(0xFF1B5E20),
-          stripColor: _green,
-          icon: Icons.check_circle_rounded,
-        );
-      case _AttendanceStatus.tidakHadir:
-        return (
-          label: 'Tidak Hadir',
-          bgColor: _redLight,
-          textColor: const Color(0xFFB71C1C),
-          stripColor: _red,
-          icon: Icons.cancel_rounded,
-        );
-      case _AttendanceStatus.selesai:
-        return (
-          label: 'Selesai',
-          bgColor: const Color(0xFFF0F0F0),
-          textColor: const Color(0xFF616161),
-          stripColor: Colors.grey.shade300,
-          icon: Icons.done_all_rounded,
-        );
-      case _AttendanceStatus.belumMulai:
-        return (
-          label: 'Belum Mulai',
-          bgColor: _amberLight,
-          textColor: const Color(0xFFE65100),
-          stripColor: _amber,
-          icon: Icons.schedule_rounded,
-        );
-    }
+// ── Dot animasi berkedip untuk status live ────────────────
+class _PulseDot extends StatefulWidget {
+  final Color color;
+  const _PulseDot({required this.color});
+
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: widget.color.withOpacity(0.4 + 0.6 * _anim.value),
+        ),
+      ),
+    );
   }
 }
 
+// ════════════════════════════════════════════════════════
+// Widget-widget kecil
+// ════════════════════════════════════════════════════════
 class _SummaryChip extends StatelessWidget {
   final String label;
   final int value;
@@ -1327,66 +1397,6 @@ class _ErrorCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AkanDatangHeader extends StatelessWidget {
-  final bool expanded;
-  final VoidCallback onTap;
-  const _AkanDatangHeader({required this.expanded, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.event_rounded,
-                size: 14,
-                color: Colors.grey.shade500,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'AKAN DATANG',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Colors.grey.shade600,
-                letterSpacing: 0.6,
-              ),
-            ),
-            const Spacer(),
-            AnimatedRotation(
-              turns: expanded ? 0.5 : 0,
-              duration: const Duration(milliseconds: 200),
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  size: 16,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

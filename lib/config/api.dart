@@ -3,7 +3,7 @@ class ApiConfig {
   // static const baseUrl = "http://10.0.2.2:8000";
 
   // Real device / local network
-  static const baseUrl = "http://192.168.1.17:8000";
+  static const baseUrl = "http://10.2.41.217: 8000";
 }
 
 class ApiEndpoint {
@@ -40,4 +40,6 @@ class ApiEndpoint {
   static String scanQr(String token) => "/api/student/scan/$token";
 
   static String enroll(int id) => "/api/student/all-classes/$id/enroll";
+
+  static const sksQuota = '/api/student/sks-quota';
 }

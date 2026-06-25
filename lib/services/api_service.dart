@@ -9,6 +9,7 @@ import 'package:igs_absensi/config/auth_storage.dart';
 import 'package:igs_absensi/model/class.dart';
 import 'package:igs_absensi/model/faculty.dart';
 import 'package:igs_absensi/DTO/search.dart';
+import 'package:igs_absensi/model/sks_quota_model.dart';
 import 'package:igs_absensi/model/study_program.dart';
 import 'package:igs_absensi/model/user.dart';
 import 'package:igs_absensi/screens/class_list/class_list_detail_screen.dart';
@@ -326,28 +327,6 @@ class ApiService {
     throw Exception('Gagal mengambil data program studi');
   }
 
-  Future<ScheduleResponse> getSchedule() async {
-    final token = await AuthStorage.getToken();
-
-    final uri = Uri.parse(ApiConfig.baseUrl + ApiEndpoint.schedule);
-
-    final response = await http.get(
-      uri,
-      headers: {
-        'Accept': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
-      return ScheduleResponse.fromJson(data as Map<String, dynamic>);
-    } else {
-      throw Exception(data['message'] ?? 'Gagal mengambil jadwal');
-    }
-  }
-
   Future<String> enrollCourse(int courseId) async {
     try {
       final token = await AuthStorage.getToken();
@@ -614,5 +593,47 @@ class ApiService {
     }
 
     throw Exception(data['message'] ?? 'Gagal mengambil ringkasan absensi');
+  }
+
+  Future<SksQuota> getSksQuota() async {
+    final token = await AuthStorage.getToken();
+
+    final response = await http.get(
+      Uri.parse(ApiConfig.baseUrl + ApiEndpoint.sksQuota),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+
+    debugPrint('=== GET SKS QUOTA ===');
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+
+      return SksQuota.fromJson(json['data']);
+    }
+
+    throw Exception('Gagal mengambil data SKS');
+  }
+
+  Future<ScheduleResponse> getSchedule() async {
+    final token = await AuthStorage.getToken();
+
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}${ApiEndpoint.schedule}'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+
+    print('=== GET SCHEDULE ===');
+    print('Status: ${response.statusCode}');
+    print('Body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+
+      return ScheduleResponse.fromJson(json);
+    }
+
+    throw Exception('Gagal mengambil jadwal (${response.statusCode})');
   }
 }

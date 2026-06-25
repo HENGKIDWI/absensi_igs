@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:igs_absensi/model/class.dart';
+import 'package:igs_absensi/model/sks_quota_model.dart';
 import 'package:igs_absensi/screens/class_list/class_list_detail_screen.dart';
 import 'package:igs_absensi/services/api_service.dart';
 
@@ -16,6 +17,8 @@ class _SearchScreenState extends State<SearchScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  SksQuota? _quota;
+  bool _isLoadingQuota = false;
 
   List<ClassModel> _courses = [];
   String? _nextCursor;
@@ -29,7 +32,10 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+
     _fetchData();
+    _fetchQuota();
+
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent - 200 &&
@@ -77,6 +83,26 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() => _errorMessage = 'Gagal memuat data. Coba lagi.');
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchQuota() async {
+    try {
+      setState(() {
+        _isLoadingQuota = true;
+      });
+
+      final result = await _apiService.getSksQuota();
+
+      setState(() {
+        _quota = result;
+      });
+    } catch (e) {
+      debugPrint(e.toString());
+    } finally {
+      setState(() {
+        _isLoadingQuota = false;
+      });
     }
   }
 
@@ -135,6 +161,11 @@ class _SearchScreenState extends State<SearchScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              if (_quota != null) ...[
+                _SksBanner(quota: _quota!),
+                const SizedBox(height: 16),
+              ],
+
               SearchBar(
                 controller: _searchController,
                 hintText: 'Cari kelas...',
@@ -236,6 +267,25 @@ class _ClassCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${classModel.sks} SKS',
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -353,6 +403,123 @@ class _Badge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(label, style: TextStyle(fontSize: 11, color: textColor)),
+    );
+  }
+}
+
+class _QuotaItem extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const _QuotaItem({required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(title, style: const TextStyle(color: Colors.white70)),
+      ],
+    );
+  }
+}
+
+class _SksBanner extends StatelessWidget {
+  final SksQuota quota;
+
+  const _SksBanner({required this.quota});
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = quota.maxSks == 0 ? 0.0 : quota.currentSks / quota.maxSks;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Kuota Pengambilan SKS',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+
+          const SizedBox(height: 4),
+
+          Text(
+            'IPS ${quota.ips}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _BannerItem(label: 'Maks', value: quota.maxSks.toString()),
+
+              _BannerItem(label: 'Diambil', value: quota.currentSks.toString()),
+
+              _BannerItem(label: 'Sisa', value: quota.remainingSks.toString()),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: Colors.white24,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BannerItem extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _BannerItem({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+      ],
     );
   }
 }
